@@ -11,6 +11,101 @@ class ClaudeService:
         self.client = Anthropic(api_key=settings.claude_api_key) if settings.claude_api_key else None
         self.model = "claude-sonnet-4"
     
+    def generate_step1_form(self, organization_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate dynamic form for Step 1 based on organization data."""
+        if not self.client:
+            raise ValueError("Claude API key not configured")
+        
+        system_prompt = """Jesteś ekspertem BFA automation-master specjalizującym się w projektowaniu kwestionariuszy diagnostycznych.
+
+Twoim zadaniem jest stworzenie spersonalizowanego kwestionariusza diagnostycznego dla organizacji, który pozwoli na dogłębną analizę jej gotowości do automatyzacji procesów biznesowych.
+
+Zasady tworzenia kwestionariusza:
+- Pytania powinny być konkretne i dostosowane do branży i wielkości organizacji
+- Mix pytań: tekstowe (otwarte), numeryczne, skale (1-10), i wybór wielokrotny
+- 15-25 pytań pogrupowanych w kategorie:
+  1. Dojrzałość Procesowa (Process Maturity)
+  2. Infrastruktura Cyfrowa (Digital Infrastructure)
+  3. Jakość Danych (Data Quality)
+  4. Gotowość Organizacyjna (Organizational Readiness)
+  5. Zdolność Finansowa (Financial Capacity)
+  6. Zgodność Strategiczna (Strategic Alignment)
+
+- Każde pytanie musi mieć:
+  - id: unikalny identyfikator
+  - category: jedna z 6 kategorii
+  - question: treść pytania (po polsku)
+  - type: "text" / "number" / "scale" / "select" / "multiselect"
+  - required: true/false
+  - placeholder: (dla text)
+  - options: (dla select/multiselect)
+  - min/max: (dla number/scale)
+  - help_text: dodatkowe wyjaśnienie
+
+Użyj extended thinking do przemyślenia najlepszych pytań dla tej konkretnej organizacji.
+
+Format odpowiedzi: JSON"""
+
+        user_prompt = f"""Na podstawie poniższych informacji o organizacji, zaprojektuj spersonalizowany kwestionariusz diagnostyczny:
+
+DANE ORGANIZACJI:
+{json.dumps(organization_data, indent=2, ensure_ascii=False)}
+
+Wygeneruj kwestionariusz z 15-25 pytaniami dostosowanymi do:
+- Branży: {organization_data.get('industry', 'unknown')}
+- Wielkości: {organization_data.get('size', 'unknown')}
+- Struktury: {organization_data.get('structure', 'unknown')}
+
+Zwróć JSON w formacie:
+{{
+  "questionnaire": [
+    {{
+      "id": "unique_id",
+      "category": "Process Maturity",
+      "question": "Treść pytania po polsku",
+      "type": "text|number|scale|select|multiselect",
+      "required": true,
+      "placeholder": "Wskazówka dla użytkownika",
+      "options": ["opcja1", "opcja2"],
+      "min": 1,
+      "max": 10,
+      "help_text": "Dodatkowe wyjaśnienie"
+    }}
+  ],
+  "process_suggestions": [
+    "Sugerowany proces 1 typowy dla branży",
+    "Sugerowany proces 2",
+    "..."
+  ]
+}}"""
+
+        try:
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=16000,
+                thinking={
+                    "type": "enabled",
+                    "budget_tokens": 10000
+                },
+                system=system_prompt,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": user_prompt
+                    }
+                ]
+            )
+            
+            # Extract JSON from response (może być w thinking blocks)
+            result_text = ""
+            for block in response.content:
+                if block.type == "text":
+                    result_text += block.text
+            
+            return json.loads(result_text)
+        except Exception as e:
+            raise ValueError(f"Claude API error: {str(e)}")
+    
     def analyze_step1(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze organization and processes for Step 1."""
         if not self.client:
@@ -87,7 +182,11 @@ Zwróć wynik w formacie JSON zgodnym z poniższym schematem:
         try:
             response = self.client.messages.create(
                 model=self.model,
-                max_tokens=8000,
+                max_tokens=16000,
+                thinking={
+                    "type": "enabled",
+                    "budget_tokens": 10000
+                },
                 system=system_prompt,
                 messages=[
                     {
@@ -97,7 +196,12 @@ Zwróć wynik w formacie JSON zgodnym z poniższym schematem:
                 ]
             )
             
-            result_text = response.content[0].text
+            # Extract text from response (skip thinking blocks)
+            result_text = ""
+            for block in response.content:
+                if block.type == "text":
+                    result_text += block.text
+            
             return json.loads(result_text)
         except Exception as e:
             raise ValueError(f"Claude API error: {str(e)}")
@@ -177,7 +281,11 @@ Zwróć wynik w formacie JSON zgodnym z poniższym schematem:
         try:
             response = self.client.messages.create(
                 model=self.model,
-                max_tokens=8000,
+                max_tokens=16000,
+                thinking={
+                    "type": "enabled",
+                    "budget_tokens": 10000
+                },
                 system=system_prompt,
                 messages=[
                     {
@@ -187,7 +295,12 @@ Zwróć wynik w formacie JSON zgodnym z poniższym schematem:
                 ]
             )
             
-            result_text = response.content[0].text
+            # Extract text from response (skip thinking blocks)
+            result_text = ""
+            for block in response.content:
+                if block.type == "text":
+                    result_text += block.text
+            
             return json.loads(result_text)
         except Exception as e:
             raise ValueError(f"Claude API error: {str(e)}")
@@ -245,7 +358,11 @@ Zwróć wynik w formacie JSON."""
         try:
             response = self.client.messages.create(
                 model=self.model,
-                max_tokens=16000,
+                max_tokens=20000,
+                thinking={
+                    "type": "enabled",
+                    "budget_tokens": 15000
+                },
                 system=system_prompt,
                 messages=[
                     {
@@ -255,7 +372,12 @@ Zwróć wynik w formacie JSON."""
                 ]
             )
             
-            result_text = response.content[0].text
+            # Extract text from response (skip thinking blocks)
+            result_text = ""
+            for block in response.content:
+                if block.type == "text":
+                    result_text += block.text
+            
             return json.loads(result_text)
         except Exception as e:
             raise ValueError(f"Claude API error: {str(e)}")

@@ -83,6 +83,11 @@ export const projectsAPI = {
 
 // Step 1
 export const step1API = {
+  generateForm: async (projectId: number, orgData: any) => {
+    const response = await api.post(`/api/projects/${projectId}/step1/generate-form`, orgData);
+    return response.data;
+  },
+
   analyze: async (projectId: number, data: Step1Input): Promise<Step1Result> => {
     const response = await api.post(`/api/projects/${projectId}/step1/analyze`, data);
     return response.data;

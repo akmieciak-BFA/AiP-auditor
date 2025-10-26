@@ -1,6 +1,20 @@
 # BFA Audit App - Aplikacja do Automatyzacji Audytów BFA
 
-Kompleksowa aplikacja webowa do tworzenia profesjonalnych audytów automatyzacyjnych według 4-krokowego frameworku BFA.
+Kompleksowa aplikacja webowa i desktopowa do tworzenia profesjonalnych audytów automatyzacyjnych według 4-krokowego frameworku BFA.
+
+## ✨ NOWE FUNKCJE
+
+### 🖥️ Wersja Desktopowa (Electron)
+- Natywna aplikacja na Windows, macOS i Linux
+- Pełna funkcjonalność bez przeglądarki
+- Zobacz: [DESKTOP_APP.md](DESKTOP_APP.md)
+
+### 🧠 Dynamiczne Formularze z Extended Thinking
+- Claude Sonnet 4.5 generuje spersonalizowane kwestionariusze
+- Pytania dostosowane do branży i wielkości organizacji
+- Mix pytań: tekstowe, numeryczne, skale, wybór wielokrotny
+- Extended Thinking dla głębszej analizy
+- Zobacz: [DYNAMIC_FORMS.md](DYNAMIC_FORMS.md)
 
 ## 📋 Spis treści
 
@@ -18,11 +32,13 @@ Kompleksowa aplikacja webowa do tworzenia profesjonalnych audytów automatyzacyj
 ## 🎯 Przegląd
 
 BFA Audit App to narzędzie wspierające proces audytowy, które:
-- ✅ Zbiera dane przez intuicyjne formularze
-- ✅ Analizuje procesy biznesowe za pomocą AI (Claude Sonnet 4.5)
-- ✅ Generuje profesjonalne prezentacje (Gamma API)
-- ✅ Oblicza ROI i payback period
-- ✅ Dostarcza konkretne rekomendacje technologiczne
+- ✅ **Dynamiczne formularze** - Claude generuje pytania dostosowane do Twojej branży
+- ✅ **Extended Thinking** - głęboka analiza AI z zaawansowanym rozumowaniem
+- ✅ **Wersja desktopowa** - natywna aplikacja Electron (Windows/Mac/Linux)
+- ✅ **Analiza procesów** - identyfikacja marnotrawstwa, wąskich gardeł, potencjału automatyzacji
+- ✅ **Profesjonalne prezentacje** - automatyczne generowanie przez Gamma API
+- ✅ **Kalkulacje finansowe** - ROI, payback period, NPV
+- ✅ **Rekomendacje vendorów** - research technologii i porównanie rozwiązań
 
 ## 🛠 Technologie
 
@@ -64,12 +80,15 @@ BFA Audit App to narzędzie wspierające proces audytowy, które:
 
 ## 📊 Framework Audytowy (4 Kroki)
 
-### **Krok 1: Analiza Wstępna**
-- Identyfikacja TOP 3-5-10 procesów do dalszej analizy
-- Kwestionariusz diagnostyczny (20-30 pytań)
-- Scoring procesów (0-100)
-- Kategoryzacja na Tier 1-4
-- Analiza dojrzałości cyfrowej (6 wymiarów)
+### **Krok 1: Analiza Wstępna** ⭐ NOWE: Dynamiczne Formularze!
+- 🧠 **Claude generuje spersonalizowany kwestionariusz** (15-25 pytań)
+- 📝 **Mix pytań**: tekstowe, numeryczne, skale, wybór wielokrotny
+- 🎯 **Dostosowane do branży** i wielkości organizacji
+- 🔍 **Extended Thinking** dla głębszej analizy odpowiedzi
+- 📊 Scoring procesów (0-100)
+- 🏆 Identyfikacja TOP 3-5-10 procesów
+- 📈 Kategoryzacja na Tier 1-4
+- 💎 Analiza dojrzałości cyfrowej (6 wymiarów)
 
 ### **Krok 2: Mapowanie Procesów**
 - Szczegółowa analiza procesu AS-IS

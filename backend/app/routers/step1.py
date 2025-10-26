@@ -1,14 +1,47 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from typing import Dict, Any
 from ..database import get_db
 from ..models.user import User
 from ..models.project import Project
 from ..models.step1 import Step1Data
-from ..schemas.step1 import Step1DataInput, Step1AnalysisResult
+from ..schemas.step1 import Step1DataInput, Step1AnalysisResult, OrganizationData
 from ..services.claude_service import ClaudeService
 from ..utils.auth import get_current_user
 
 router = APIRouter(prefix="/api/projects/{project_id}/step1", tags=["step1"])
+
+
+@router.post("/generate-form")
+def generate_step1_form(
+    project_id: int,
+    org_data: OrganizationData,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """Generate dynamic questionnaire form based on organization data."""
+    # Verify project ownership
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.user_id == current_user.id
+    ).first()
+    
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found"
+        )
+    
+    # Call Claude API to generate form
+    claude_service = ClaudeService()
+    try:
+        form_data = claude_service.generate_step1_form(org_data.dict())
+        return form_data
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Form generation failed: {str(e)}"
+        )
 
 
 @router.post("/analyze", response_model=Step1AnalysisResult)
