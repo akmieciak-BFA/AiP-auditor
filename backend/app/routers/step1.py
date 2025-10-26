@@ -2,73 +2,30 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Dict, Any
 import logging
+import os
+from pathlib import Path
 from ..database import get_db
-from ..models.user import User
 from ..models.project import Project
 from ..models.step1 import Step1Data
-from ..schemas.step1 import Step1DataInput, Step1AnalysisResult, OrganizationData
+from ..schemas.step1 import InitialAssessmentData, Step1AnalysisResult
 from ..services.claude_service import ClaudeService
-from ..utils.auth import get_current_user
-from ..utils.validators import validate_processes_list, validate_questionnaire_answers
-from ..middleware.rate_limit import form_generation_rate_limit, ai_analysis_rate_limit
-from ..middleware.security import sanitize_dict, validate_input
+from ..middleware.rate_limit import ai_analysis_rate_limit
+from ..middleware.security import sanitize_dict
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/projects/{project_id}/step1", tags=["step1"])
 
 
-@router.post("/generate-form")
-def generate_step1_form(
-    project_id: int,
-    org_data: OrganizationData,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    _rate_limit: bool = Depends(form_generation_rate_limit)
-) -> Dict[str, Any]:
-    """Generate dynamic questionnaire form based on organization data."""
-    # Verify project ownership
-    project = db.query(Project).filter(
-        Project.id == project_id,
-        Project.user_id == current_user.id
-    ).first()
-    
-    if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found"
-        )
-    
-    # Validate and sanitize organization data
-    clean_data = sanitize_dict(org_data.dict())
-    validate_input(clean_data.get('company_name', ''), 'Nazwa firmy', 100)
-    validate_input(clean_data.get('industry', ''), 'Branża', 100)
-    
-    # Call Claude API to generate form
-    claude_service = ClaudeService()
-    try:
-        form_data = claude_service.generate_step1_form(clean_data)
-        return form_data
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Form generation failed: {str(e)}"
-        )
-
-
 @router.post("/analyze", response_model=Step1AnalysisResult)
 def analyze_step1(
     project_id: int,
-    data: Step1DataInput,
+    data: InitialAssessmentData,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
     _rate_limit: bool = Depends(ai_analysis_rate_limit)
 ):
-    """Analyze Step 1 data using Claude API."""
-    # Verify project ownership
-    project = db.query(Project).filter(
-        Project.id == project_id,
-        Project.user_id == current_user.id
-    ).first()
+    """Analyze Step 1 data using Claude API with extended thinking."""
+    # Verify project exists
+    project = db.query(Project).filter(Project.id == project_id).first()
     
     if not project:
         raise HTTPException(
@@ -76,24 +33,16 @@ def analyze_step1(
             detail="Project not found"
         )
     
-    # Validate inputs
-    clean_processes = validate_processes_list(data.processes_list)
-    validate_questionnaire_answers(data.questionnaire_answers)
-    
     # Sanitize data
-    clean_org_data = sanitize_dict(data.organization_data.dict())
-    clean_answers = sanitize_dict(data.questionnaire_answers)
+    clean_data = sanitize_dict(data.dict())
     
-    # Call Claude API
+    # Call Claude API with extended thinking
     claude_service = ClaudeService()
     try:
-        logger.info(f"Analyzing Step 1 for project {project_id}")
-        analysis_results = claude_service.analyze_step1({
-            "organization_data": clean_org_data,
-            "questionnaire_answers": clean_answers,
-            "processes_list": clean_processes
-        })
+        logger.info(f"Analyzing Step 1 for project {project_id} with extended thinking")
+        analysis_results = claude_service.analyze_step1_comprehensive(clean_data)
     except Exception as e:
+        logger.error(f"Analysis failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Analysis failed: {str(e)}"
@@ -103,16 +52,12 @@ def analyze_step1(
     step1_data = db.query(Step1Data).filter(Step1Data.project_id == project_id).first()
     
     if step1_data:
-        step1_data.organization_data = data.organization_data.dict()
-        step1_data.questionnaire_answers = data.questionnaire_answers
-        step1_data.processes_list = data.processes_list
+        step1_data.organization_data = clean_data
         step1_data.analysis_results = analysis_results
     else:
         step1_data = Step1Data(
             project_id=project_id,
-            organization_data=data.organization_data.dict(),
-            questionnaire_answers=data.questionnaire_answers,
-            processes_list=data.processes_list,
+            organization_data=clean_data,
             analysis_results=analysis_results
         )
         db.add(step1_data)
@@ -123,21 +68,174 @@ def analyze_step1(
     db.commit()
     db.refresh(step1_data)
     
+    # Generate markdown report
+    try:
+        _generate_step1_markdown_report(project, clean_data, analysis_results)
+    except Exception as e:
+        logger.error(f"Failed to generate markdown report: {e}")
+        # Don't fail the request if report generation fails
+    
     return Step1AnalysisResult(**analysis_results)
+
+
+def _generate_step1_markdown_report(project: Project, data: Dict[str, Any], results: Dict[str, Any]):
+    """Generate markdown report for Step 1."""
+    # Create project directory
+    project_dir = Path(f"./project_reports/{project.name.replace(' ', '_')}")
+    project_dir.mkdir(parents=True, exist_ok=True)
+    
+    report_path = project_dir / "STEP1_ANALIZA_WSTEPNA.md"
+    
+    # Generate markdown content
+    markdown_content = f"""# KROK 1: ANALIZA WSTĘPNA - AUDYT AUTOMATYZACYJNY BFA
+
+## Informacje o Projekcie
+
+- **Projekt:** {project.name}
+- **Klient:** {project.client_name}
+- **Data:** {project.created_at.strftime('%Y-%m-%d %H:%M')}
+
+---
+
+## SEKCJA A: INFORMACJE ORGANIZACYJNE
+
+### Podstawowe dane organizacji
+
+- **Nazwa organizacji:** {data.get('organization_name', 'N/A')}
+- **Branża:** {data.get('industry', 'N/A')}
+- **Wielkość:** {data.get('company_size', 'N/A')}
+- **Roczny obrót:** {data.get('annual_revenue', 0):,.0f} PLN
+- **Lokalizacja:** {data.get('headquarters_location', 'N/A')}
+- **Liczba lokalizacji:** {data.get('number_of_locations', 0)}
+
+### Obszary funkcjonalne
+
+**Aktywne obszary:**
+{chr(10).join(f"- {area}" for area in data.get('functional_areas', []))}
+
+**Krytyczne obszary (TOP 3):**
+{chr(10).join(f"- {area}" for area in data.get('critical_areas', []))}
+
+### Dojrzałość cyfrowa
+
+| Obszar | Ocena (0-10) |
+|--------|--------------|
+| Systemy ERP | {data.get('digital_maturity_erp', 0)} |
+| CRM | {data.get('digital_maturity_crm', 0)} |
+| Automatyzacja produkcji | {data.get('digital_maturity_production', 0)} |
+| RPA | {data.get('digital_maturity_rpa', 0)} |
+| Analityka BI | {data.get('digital_maturity_analytics', 0)} |
+| IoT | {data.get('digital_maturity_iot', 0)} |
+| AI/ML | {data.get('digital_maturity_ai', 0)} |
+| Automatyzacja komunikacji | {data.get('digital_maturity_communication', 0)} |
+| Workflow BPM | {data.get('digital_maturity_workflow', 0)} |
+| Cloud | {data.get('digital_maturity_cloud', 0)} |
+
+### Budżet i inwestycje
+
+- **Planowany budżet:** {data.get('budget_range', 'N/A')}
+- **Oczekiwany payback:** {data.get('expected_payback_months', 0)} miesięcy
+
+---
+
+## SEKCJA B: IDENTYFIKACJA PROBLEMÓW
+
+### Główne wyzwania operacyjne
+
+{data.get('challenges_description', 'Brak opisu')}
+
+---
+
+## SEKCJA C: CELE I OCZEKIWANIA
+
+### Cele finansowe
+
+- **Redukcja kosztów operacyjnych:** {data.get('expected_cost_reduction_percent', 0)}% rocznie
+- **Wzrost przychodów:** {data.get('expected_revenue_increase_percent', 0)}% rocznie
+- **Oczekiwany ROI:** {data.get('expected_roi_percent', 0)}%
+- **Cel oszczędności:** {data.get('specific_savings_goal', 0):,.0f} PLN
+
+### Źródła oszczędności
+
+{data.get('savings_sources_description', 'Brak opisu')}
+
+---
+
+## SEKCJA D: ZASOBY WEWNĘTRZNE
+
+- **Zespół IT:** {data.get('has_it_team', 'N/A')} ({data.get('it_team_size', 0)} osób)
+- **Dział BPM:** {data.get('has_bpm_department', 'N/A')}
+- **Doświadczenie automatyzacji:** {data.get('automation_experience', 'N/A')}
+- **Project Manager:** {data.get('has_project_manager', 'N/A')}
+- **Change Manager:** {data.get('has_change_manager', 'N/A')}
+
+---
+
+## SEKCJA E: STRATEGIA BIZNESOWA
+
+### Strategia 3-5 lat
+
+{data.get('business_strategy_description', 'Brak opisu')}
+
+### Dodatkowe uwagi
+
+{data.get('additional_notes', 'Brak')}
+
+---
+
+## WYNIKI ANALIZY CLAUDE API (Extended Thinking)
+
+### Ocena dojrzałości cyfrowej
+
+{results.get('digital_maturity', {}).get('interpretation', 'Brak danych')}
+
+**Scoring:**
+- **Process Maturity:** {results.get('digital_maturity', {}).get('process_maturity', 0)}/100
+- **Digital Infrastructure:** {results.get('digital_maturity', {}).get('digital_infrastructure', 0)}/100
+- **Data Quality:** {results.get('digital_maturity', {}).get('data_quality', 0)}/100
+- **Organizational Readiness:** {results.get('digital_maturity', {}).get('organizational_readiness', 0)}/100
+- **Financial Capacity:** {results.get('digital_maturity', {}).get('financial_capacity', 0)}/100
+- **Strategic Alignment:** {results.get('digital_maturity', {}).get('strategic_alignment', 0)}/100
+
+**Overall Score:** {results.get('digital_maturity', {}).get('overall_score', 0)}/100
+
+### TOP Procesy do automatyzacji
+
+{chr(10).join(f"{i+1}. **{proc}**" for i, proc in enumerate(results.get('top_processes', [])))}
+
+### Scoring procesów według BFA 6-wymiarowego frameworku
+
+{chr(10).join(f"#### {proc.get('process_name', 'N/A')}{chr(10)}- **Score:** {proc.get('score', 0)}/100{chr(10)}- **Tier:** {proc.get('tier', 0)}{chr(10)}- **Uzasadnienie:** {proc.get('rationale', 'N/A')}{chr(10)}" for proc in results.get('processes_scoring', []))}
+
+### Analiza prawna (Lex/Sigma)
+
+{results.get('legal_analysis', 'Brak danych')}
+
+### Rekomendacje
+
+{results.get('recommendations', 'Brak rekomendacji')}
+
+---
+
+**Raport wygenerowany automatycznie przez BFA Audit App**
+**Powered by Claude Sonnet 4.5 with Extended Thinking**
+"""
+    
+    # Write to file
+    with open(report_path, 'w', encoding='utf-8') as f:
+        f.write(markdown_content)
+    
+    logger.info(f"Step 1 markdown report generated: {report_path}")
 
 
 @router.get("/results", response_model=Step1AnalysisResult)
 def get_step1_results(
     project_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """Get Step 1 analysis results."""
-    # Verify project ownership
-    project = db.query(Project).filter(
-        Project.id == project_id,
-        Project.user_id == current_user.id
-    ).first()
+    # Verify project exists
+    project = db.query(Project).filter(Project.id == project_id).first()
     
     if not project:
         raise HTTPException(

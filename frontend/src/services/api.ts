@@ -1,9 +1,5 @@
 import axios from 'axios';
 import type {
-  LoginCredentials,
-  RegisterData,
-  AuthResponse,
-  User,
   Project,
   ProjectCreate,
   Step1Input,
@@ -22,37 +18,6 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
-
-// Add token to requests
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// Auth
-export const authAPI = {
-  login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
-    const response = await api.post('/api/auth/login', credentials);
-    return response.data;
-  },
-
-  register: async (data: RegisterData): Promise<User> => {
-    const response = await api.post('/api/auth/register', data);
-    return response.data;
-  },
-
-  getMe: async (): Promise<User> => {
-    const response = await api.get('/api/auth/me');
-    return response.data;
-  },
-
-  logout: async (): Promise<void> => {
-    await api.post('/api/auth/logout');
-  },
-};
 
 // Projects
 export const projectsAPI = {

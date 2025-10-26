@@ -20,7 +20,6 @@ class ProjectUpdate(BaseModel):
 
 class Project(ProjectBase):
     id: int
-    user_id: int
     status: str
     created_at: datetime
     updated_at: datetime

@@ -2,33 +2,26 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from ..database import get_db
-from ..models.user import User
 from ..models.project import Project
 from ..schemas.project import Project as ProjectSchema, ProjectCreate, ProjectUpdate
-from ..utils.auth import get_current_user
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
 
 @router.get("/", response_model=List[ProjectSchema])
-def get_projects(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Get all projects for current user."""
-    projects = db.query(Project).filter(Project.user_id == current_user.id).all()
+def get_projects(db: Session = Depends(get_db)):
+    """Get all projects."""
+    projects = db.query(Project).all()
     return projects
 
 
 @router.post("/", response_model=ProjectSchema)
 def create_project(
     project_data: ProjectCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """Create a new project."""
     new_project = Project(
-        user_id=current_user.id,
         name=project_data.name,
         client_name=project_data.client_name,
         status="step1"
@@ -44,14 +37,10 @@ def create_project(
 @router.get("/{project_id}", response_model=ProjectSchema)
 def get_project(
     project_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """Get a specific project."""
-    project = db.query(Project).filter(
-        Project.id == project_id,
-        Project.user_id == current_user.id
-    ).first()
+    project = db.query(Project).filter(Project.id == project_id).first()
     
     if not project:
         raise HTTPException(
@@ -66,14 +55,10 @@ def get_project(
 def update_project(
     project_id: int,
     project_data: ProjectUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """Update a project."""
-    project = db.query(Project).filter(
-        Project.id == project_id,
-        Project.user_id == current_user.id
-    ).first()
+    project = db.query(Project).filter(Project.id == project_id).first()
     
     if not project:
         raise HTTPException(
@@ -98,14 +83,10 @@ def update_project(
 @router.delete("/{project_id}")
 def delete_project(
     project_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """Delete a project."""
-    project = db.query(Project).filter(
-        Project.id == project_id,
-        Project.user_id == current_user.id
-    ).first()
+    project = db.query(Project).filter(Project.id == project_id).first()
     
     if not project:
         raise HTTPException(

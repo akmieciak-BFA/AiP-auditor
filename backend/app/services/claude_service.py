@@ -128,6 +128,127 @@ Zwróć JSON w formacie:
             logger.error(f"Form generation failed: {e}")
             raise ValueError(f"Claude API error: {str(e)}")
     
+    def analyze_step1_comprehensive(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze comprehensive Step 1 data with 20 questions using extended thinking."""
+        if not self.client:
+            raise ValueError("Claude API key not configured")
+        
+        logger.info("Step1 comprehensive analysis with extended thinking")
+        
+        system_prompt = """Jesteś BFA automation-master, ekspertem w audytach automatyzacyjnych procesów biznesowych. 
+
+Otrzymałeś kompleksowy formularz początkowy audytu BFA z 20 pytaniami podzielonymi na 5 sekcji:
+- Sekcja A: Informacje Organizacyjne
+- Sekcja B: Identyfikacja Problemów i Wąskich Gardeł
+- Sekcja C: Cele i Oczekiwania
+- Sekcja D: Zasoby i Ograniczenia
+- Sekcja E: Kontekst Strategiczny
+
+Twoja rola to dogłębna analiza według BFA 6-wymiarowego frameworku:
+
+1. **Ocena dojrzałości cyfrowej** (6 wymiarów, każdy 0-100):
+   - Process Maturity
+   - Digital Infrastructure
+   - Data Quality
+   - Organizational Readiness
+   - Financial Capacity
+   - Strategic Alignment
+
+2. **Identyfikacja TOP 3-5-10 procesów** o największym potencjale automatyzacji bazując na:
+   - Time consumption (TDABC)
+   - Error rates (quality improvement)
+   - Bottlenecks (throughput)
+   - Repeatability & standardization
+   - Strategic alignment
+   - Quick wins vs strategic impact
+
+3. **Scoring każdego procesu** według potencjału automatyzacji (0-100) i kategoryzacja na Tier 1-4
+
+4. **Analiza prawna** (Lex/Sigma) - identyfikacja regulacji wpływających na automatyzację
+
+5. **Mapowanie zależności systemów IT**
+
+6. **Rekomendacje** - konkretne, actionable, z priorytetami
+
+Zasady:
+- Używaj extended thinking do dogłębnej analizy
+- Wszystkie metryki quantified (liczby, %, PLN)
+- Bazuj na Lean Six Sigma, BPMN 2.0, Time-Driven ABC, ADKAR
+- Język polski, bez emoji
+- Format odpowiedzi: JSON"""
+
+        user_prompt = f"""Przeanalizuj następujące dane z formularza początkowego audytu BFA:
+
+DANE ORGANIZACJI (wszystkie 20 pytań):
+{json.dumps(data, indent=2, ensure_ascii=False)}
+
+Wykonaj kompleksową analizę i zwróć wynik w formacie JSON:
+
+{{
+  "digital_maturity": {{
+    "process_maturity": 0-100,
+    "digital_infrastructure": 0-100,
+    "data_quality": 0-100,
+    "organizational_readiness": 0-100,
+    "financial_capacity": 0-100,
+    "strategic_alignment": 0-100,
+    "overall_score": 0-100,
+    "interpretation": "szczegółowa interpretacja wyników"
+  }},
+  "processes_scoring": [
+    {{
+      "process_name": "nazwa procesu",
+      "score": 0-100,
+      "tier": 1-4,
+      "rationale": "szczegółowe uzasadnienie"
+    }}
+  ],
+  "top_processes": ["proces1", "proces2", ...],
+  "legal_analysis": "analiza regulacji prawnych (Lex/Sigma)",
+  "system_dependencies": {{
+    "systems": ["system1", "system2"],
+    "matrix": [[...]]
+  }},
+  "recommendations": "szczegółowe rekomendacje z priorytetami",
+  "bfa_scoring": {{
+    "automation_potential": 0-100,
+    "business_impact": 0-100,
+    "technical_feasibility": 0-100,
+    "roi_potential": 0-100,
+    "strategic_alignment": 0-100,
+    "risk_level": 0-100
+  }}
+}}"""
+
+        try:
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=20000,
+                thinking={
+                    "type": "enabled",
+                    "budget_tokens": 15000
+                },
+                system=system_prompt,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": user_prompt
+                    }
+                ]
+            )
+            
+            # Extract text from response (skip thinking blocks)
+            result_text = ""
+            for block in response.content:
+                if block.type == "text":
+                    result_text += block.text
+            
+            result = json.loads(result_text)
+            return result
+        except Exception as e:
+            logger.error(f"Step1 comprehensive analysis failed: {e}")
+            raise ValueError(f"Claude API error: {str(e)}")
+    
     def analyze_step1(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze organization and processes for Step 1."""
         if not self.client:

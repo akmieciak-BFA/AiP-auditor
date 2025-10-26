@@ -8,7 +8,6 @@ import time
 from .config import get_settings
 from .database import init_db
 from .routers import (
-    auth_router,
     projects_router,
     step1_router,
     step2_router,
@@ -102,7 +101,6 @@ async def general_exception_handler(request: Request, exc: Exception):
 
 
 # Include routers
-app.include_router(auth_router)
 app.include_router(projects_router)
 app.include_router(drafts_router)
 app.include_router(step1_router)
