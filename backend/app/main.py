@@ -8,7 +8,6 @@ import time
 from .config import get_settings
 from .database import init_db
 from .routers import (
-    auth_router,
     projects_router,
     step1_router,
     step2_router,
@@ -16,6 +15,7 @@ from .routers import (
     step4_router
 )
 from .routers.drafts import router as drafts_router
+from .routers.documents import router as documents_router
 
 # Configure logging
 logging.basicConfig(
@@ -102,9 +102,9 @@ async def general_exception_handler(request: Request, exc: Exception):
 
 
 # Include routers
-app.include_router(auth_router)
 app.include_router(projects_router)
 app.include_router(drafts_router)
+app.include_router(documents_router)
 app.include_router(step1_router)
 app.include_router(step2_router)
 app.include_router(step3_router)

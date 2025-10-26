@@ -3,10 +3,10 @@ from sqlalchemy.orm import Session
 from typing import Dict, Any
 from datetime import datetime
 from ..database import get_db
-from ..models.user import User
+# User import removed (no auth)
 from ..models.project import Project
 from ..models.draft import ProjectDraft
-from ..utils.auth import get_current_user
+# get_current_user removed (no auth)
 
 router = APIRouter(prefix="/api/projects/{project_id}/drafts", tags=["drafts"])
 

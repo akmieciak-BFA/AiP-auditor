@@ -3,12 +3,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 import logging
 from ..database import get_db
-from ..models.user import User
 from ..models.project import Project
 from ..models.step2 import Step2Process
 from ..schemas.step2 import Step2ProcessData, Step2AnalysisResult
 from ..services.claude_service import ClaudeService
-from ..utils.auth import get_current_user
 from ..middleware.rate_limit import ai_analysis_rate_limit
 from ..middleware.security import sanitize_dict, validate_input
 
@@ -20,15 +18,11 @@ router = APIRouter(prefix="/api/projects/{project_id}/step2", tags=["step2"])
 def add_process(
     project_id: int,
     process_name: str,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """Add a new process to analyze in Step 2."""
-    # Verify project ownership
-    project = db.query(Project).filter(
-        Project.id == project_id,
-        Project.user_id == current_user.id
-    ).first()
+    # Verify project exists
+    project = db.query(Project).filter(Project.id == project_id).first()
     
     if not project:
         raise HTTPException(
@@ -56,15 +50,11 @@ def update_process(
     project_id: int,
     process_id: int,
     data: Step2ProcessData,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """Update process data."""
-    # Verify project ownership
-    project = db.query(Project).filter(
-        Project.id == project_id,
-        Project.user_id == current_user.id
-    ).first()
+    # Verify project exists
+    project = db.query(Project).filter(Project.id == project_id).first()
     
     if not project:
         raise HTTPException(
@@ -113,15 +103,11 @@ def analyze_process(
     project_id: int,
     process_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
     _rate_limit: bool = Depends(ai_analysis_rate_limit)
 ):
     """Analyze a process using Claude API."""
-    # Verify project ownership
-    project = db.query(Project).filter(
-        Project.id == project_id,
-        Project.user_id == current_user.id
-    ).first()
+    # Verify project exists
+    project = db.query(Project).filter(Project.id == project_id).first()
     
     if not project:
         raise HTTPException(
@@ -172,15 +158,11 @@ def analyze_process(
 @router.get("/results")
 def get_step2_results(
     project_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """Get all Step 2 process results."""
-    # Verify project ownership
-    project = db.query(Project).filter(
-        Project.id == project_id,
-        Project.user_id == current_user.id
-    ).first()
+    # Verify project exists
+    project = db.query(Project).filter(Project.id == project_id).first()
     
     if not project:
         raise HTTPException(

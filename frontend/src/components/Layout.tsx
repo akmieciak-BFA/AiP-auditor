@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Home } from 'lucide-react';
-import { useAuthStore } from '../store/authStore';
+import { Home } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -8,12 +7,6 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
 
   return (
     <div className="min-h-screen bg-dark-800">
@@ -30,14 +23,7 @@ export default function Layout({ children }: LayoutProps) {
               </button>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-gray-300">{user?.name}</span>
-              <button
-                onClick={handleLogout}
-                className="btn btn-secondary flex items-center space-x-2"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>Wyloguj</span>
-              </button>
+              <span className="text-gray-400 text-sm">Aplikacja wewnętrzna - Audyty Automatyzacyjne</span>
             </div>
           </div>
         </div>

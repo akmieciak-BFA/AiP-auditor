@@ -1,32 +1,6 @@
-// User types
-export interface User {
-  id: number;
-  email: string;
-  name: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface LoginCredentials {
-  email: string;
-  password: string;
-}
-
-export interface RegisterData {
-  email: string;
-  password: string;
-  name: string;
-}
-
-export interface AuthResponse {
-  access_token: string;
-  token_type: string;
-}
-
 // Project types
 export interface Project {
   id: number;
-  user_id: number;
   name: string;
   client_name: string;
   status: 'step1' | 'step2' | 'step3' | 'step4' | 'completed';
@@ -40,16 +14,8 @@ export interface ProjectCreate {
 }
 
 // Step 1 types
-export interface OrganizationData {
-  company_name: string;
-  industry: string;
-  size: string;
-  structure: string;
-  description?: string;
-}
-
 export interface Step1Input {
-  organization_data: OrganizationData;
+  organization_data: any;  // Comprehensive initial assessment data
   questionnaire_answers: Record<string, any>;
   processes_list: string[];
 }
@@ -82,6 +48,14 @@ export interface Step1Result {
     matrix: number[][];
   };
   recommendations: string;
+  bfa_scoring?: {
+    automation_potential: number;
+    business_impact: number;
+    technical_feasibility: number;
+    roi_potential: number;
+    strategic_alignment: number;
+    risk_level: number;
+  };
 }
 
 // Step 2 types
