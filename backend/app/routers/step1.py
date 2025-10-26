@@ -8,6 +8,8 @@ from ..models.step1 import Step1Data
 from ..schemas.step1 import Step1DataInput, Step1AnalysisResult, OrganizationData
 from ..services.claude_service import ClaudeService
 from ..utils.auth import get_current_user
+from ..middleware.rate_limit import form_generation_rate_limit, ai_analysis_rate_limit
+from ..middleware.security import sanitize_dict, validate_input
 
 router = APIRouter(prefix="/api/projects/{project_id}/step1", tags=["step1"])
 
@@ -17,7 +19,8 @@ def generate_step1_form(
     project_id: int,
     org_data: OrganizationData,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    _rate_limit: bool = Depends(form_generation_rate_limit)
 ) -> Dict[str, Any]:
     """Generate dynamic questionnaire form based on organization data."""
     # Verify project ownership
@@ -32,10 +35,15 @@ def generate_step1_form(
             detail="Project not found"
         )
     
+    # Validate and sanitize organization data
+    clean_data = sanitize_dict(org_data.dict())
+    validate_input(clean_data.get('company_name', ''), 'Nazwa firmy', 100)
+    validate_input(clean_data.get('industry', ''), 'Branża', 100)
+    
     # Call Claude API to generate form
     claude_service = ClaudeService()
     try:
-        form_data = claude_service.generate_step1_form(org_data.dict())
+        form_data = claude_service.generate_step1_form(clean_data)
         return form_data
     except Exception as e:
         raise HTTPException(
@@ -49,7 +57,8 @@ def analyze_step1(
     project_id: int,
     data: Step1DataInput,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    _rate_limit: bool = Depends(ai_analysis_rate_limit)
 ):
     """Analyze Step 1 data using Claude API."""
     # Verify project ownership

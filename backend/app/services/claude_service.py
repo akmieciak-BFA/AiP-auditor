@@ -1,9 +1,17 @@
 import json
+import logging
 from typing import Dict, Any
 from anthropic import Anthropic
 from ..config import get_settings
+from .cache_service import (
+    cache_form_generation,
+    save_form_generation,
+    cache_step1_analysis,
+    save_step1_analysis
+)
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 
 class ClaudeService:
@@ -15,6 +23,14 @@ class ClaudeService:
         """Generate dynamic form for Step 1 based on organization data."""
         if not self.client:
             raise ValueError("Claude API key not configured")
+        
+        # Check cache first
+        cached_result = cache_form_generation(organization_data)
+        if cached_result:
+            logger.info("Form generation cache hit")
+            return cached_result
+        
+        logger.info("Form generation cache miss - calling Claude API")
         
         system_prompt = """Jesteś ekspertem BFA automation-master specjalizującym się w projektowaniu kwestionariuszy diagnostycznych.
 
@@ -102,14 +118,28 @@ Zwróć JSON w formacie:
                 if block.type == "text":
                     result_text += block.text
             
-            return json.loads(result_text)
+            result = json.loads(result_text)
+            
+            # Save to cache
+            save_form_generation(organization_data, result)
+            
+            return result
         except Exception as e:
+            logger.error(f"Form generation failed: {e}")
             raise ValueError(f"Claude API error: {str(e)}")
     
     def analyze_step1(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze organization and processes for Step 1."""
         if not self.client:
             raise ValueError("Claude API key not configured")
+        
+        # Check cache first
+        cached_result = cache_step1_analysis(data)
+        if cached_result:
+            logger.info("Step1 analysis cache hit")
+            return cached_result
+        
+        logger.info("Step1 analysis cache miss - calling Claude API")
         
         system_prompt = """Jesteś BFA automation-master, ekspertem w audytach automatyzacyjnych procesów biznesowych. 
 
@@ -202,8 +232,14 @@ Zwróć wynik w formacie JSON zgodnym z poniższym schematem:
                 if block.type == "text":
                     result_text += block.text
             
-            return json.loads(result_text)
+            result = json.loads(result_text)
+            
+            # Save to cache
+            save_step1_analysis(data, result)
+            
+            return result
         except Exception as e:
+            logger.error(f"Step1 analysis failed: {e}")
             raise ValueError(f"Claude API error: {str(e)}")
     
     def analyze_step2(self, process_data: Dict[str, Any]) -> Dict[str, Any]:
