@@ -1,0 +1,103 @@
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
+import { useToastStore } from '../store/toastStore';
+import { LogIn } from 'lucide-react';
+
+export default function Login() {
+  const navigate = useNavigate();
+  const { login, isLoading } = useAuthStore();
+  const toast = useToastStore();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    
+    // Client-side validation
+    if (!email || !password) {
+      setError('Wypełnij wszystkie pola');
+      return;
+    }
+    
+    if (password.length < 6) {
+      setError('Hasło musi mieć minimum 6 znaków');
+      return;
+    }
+    
+    try {
+      await login(email, password);
+      toast.success('Zalogowano pomyślnie!');
+      navigate('/');
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || err.response?.data?.detail || 'Błąd logowania';
+      setError(errorMsg);
+      toast.error(errorMsg);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-dark-800 px-4">
+      <div className="max-w-md w-full">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-primary-500 mb-2">BFA Audit App</h1>
+          <p className="text-gray-400">Zaloguj się do swojego konta</p>
+        </div>
+
+        <div className="card">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="label">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="input"
+                placeholder="twoj@email.com"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="label">Hasło</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="input"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+
+            {error && (
+              <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-2 rounded-lg">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="btn btn-primary w-full flex items-center justify-center space-x-2"
+            >
+              <LogIn className="w-5 h-5" />
+              <span>{isLoading ? 'Logowanie...' : 'Zaloguj się'}</span>
+            </button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-gray-400">
+              Nie masz konta?{' '}
+              <Link to="/register" className="text-primary-500 hover:text-primary-400">
+                Zarejestruj się
+              </Link>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

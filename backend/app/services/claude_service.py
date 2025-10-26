@@ -1,0 +1,419 @@
+import json
+import logging
+from typing import Dict, Any
+from anthropic import Anthropic
+from ..config import get_settings
+from .cache_service import (
+    cache_form_generation,
+    save_form_generation,
+    cache_step1_analysis,
+    save_step1_analysis
+)
+
+settings = get_settings()
+logger = logging.getLogger(__name__)
+
+
+class ClaudeService:
+    def __init__(self):
+        self.client = Anthropic(api_key=settings.claude_api_key) if settings.claude_api_key else None
+        self.model = "claude-sonnet-4"
+    
+    def generate_step1_form(self, organization_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate dynamic form for Step 1 based on organization data."""
+        if not self.client:
+            raise ValueError("Claude API key not configured")
+        
+        # Check cache first
+        cached_result = cache_form_generation(organization_data)
+        if cached_result:
+            logger.info("Form generation cache hit")
+            return cached_result
+        
+        logger.info("Form generation cache miss - calling Claude API")
+        
+        system_prompt = """Jesteś ekspertem BFA automation-master specjalizującym się w projektowaniu kwestionariuszy diagnostycznych.
+
+Twoim zadaniem jest stworzenie spersonalizowanego kwestionariusza diagnostycznego dla organizacji, który pozwoli na dogłębną analizę jej gotowości do automatyzacji procesów biznesowych.
+
+Zasady tworzenia kwestionariusza:
+- Pytania powinny być konkretne i dostosowane do branży i wielkości organizacji
+- Mix pytań: tekstowe (otwarte), numeryczne, skale (1-10), i wybór wielokrotny
+- 15-25 pytań pogrupowanych w kategorie:
+  1. Dojrzałość Procesowa (Process Maturity)
+  2. Infrastruktura Cyfrowa (Digital Infrastructure)
+  3. Jakość Danych (Data Quality)
+  4. Gotowość Organizacyjna (Organizational Readiness)
+  5. Zdolność Finansowa (Financial Capacity)
+  6. Zgodność Strategiczna (Strategic Alignment)
+
+- Każde pytanie musi mieć:
+  - id: unikalny identyfikator
+  - category: jedna z 6 kategorii
+  - question: treść pytania (po polsku)
+  - type: "text" / "number" / "scale" / "select" / "multiselect"
+  - required: true/false
+  - placeholder: (dla text)
+  - options: (dla select/multiselect)
+  - min/max: (dla number/scale)
+  - help_text: dodatkowe wyjaśnienie
+
+Użyj extended thinking do przemyślenia najlepszych pytań dla tej konkretnej organizacji.
+
+Format odpowiedzi: JSON"""
+
+        user_prompt = f"""Na podstawie poniższych informacji o organizacji, zaprojektuj spersonalizowany kwestionariusz diagnostyczny:
+
+DANE ORGANIZACJI:
+{json.dumps(organization_data, indent=2, ensure_ascii=False)}
+
+Wygeneruj kwestionariusz z 15-25 pytaniami dostosowanymi do:
+- Branży: {organization_data.get('industry', 'unknown')}
+- Wielkości: {organization_data.get('size', 'unknown')}
+- Struktury: {organization_data.get('structure', 'unknown')}
+
+Zwróć JSON w formacie:
+{{
+  "questionnaire": [
+    {{
+      "id": "unique_id",
+      "category": "Process Maturity",
+      "question": "Treść pytania po polsku",
+      "type": "text|number|scale|select|multiselect",
+      "required": true,
+      "placeholder": "Wskazówka dla użytkownika",
+      "options": ["opcja1", "opcja2"],
+      "min": 1,
+      "max": 10,
+      "help_text": "Dodatkowe wyjaśnienie"
+    }}
+  ],
+  "process_suggestions": [
+    "Sugerowany proces 1 typowy dla branży",
+    "Sugerowany proces 2",
+    "..."
+  ]
+}}"""
+
+        try:
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=16000,
+                thinking={
+                    "type": "enabled",
+                    "budget_tokens": 10000
+                },
+                system=system_prompt,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": user_prompt
+                    }
+                ]
+            )
+            
+            # Extract JSON from response (może być w thinking blocks)
+            result_text = ""
+            for block in response.content:
+                if block.type == "text":
+                    result_text += block.text
+            
+            result = json.loads(result_text)
+            
+            # Save to cache
+            save_form_generation(organization_data, result)
+            
+            return result
+        except Exception as e:
+            logger.error(f"Form generation failed: {e}")
+            raise ValueError(f"Claude API error: {str(e)}")
+    
+    def analyze_step1(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze organization and processes for Step 1."""
+        if not self.client:
+            raise ValueError("Claude API key not configured")
+        
+        # Check cache first
+        cached_result = cache_step1_analysis(data)
+        if cached_result:
+            logger.info("Step1 analysis cache hit")
+            return cached_result
+        
+        logger.info("Step1 analysis cache miss - calling Claude API")
+        
+        system_prompt = """Jesteś BFA automation-master, ekspertem w audytach automatyzacyjnych procesów biznesowych. 
+
+Twoja rola to analiza danych organizacji i procesów biznesowych w celu:
+1. Oceny dojrzałości cyfrowej organizacji według 6 wymiarów (Process Maturity, Digital Infrastructure, Data Quality, Organizational Readiness, Financial Capacity, Strategic Alignment)
+2. Scoring każdego procesu według potencjału automatyzacji (0-100)
+3. Kategoryzacji procesów na Tier 1-4
+4. Identyfikacji TOP 3-5-10 procesów do dalszej analizy
+5. Analizy regulacji prawnych (Lex/Sigma)
+6. Mapowania zależności między systemami IT
+
+Zasady pracy:
+- Używaj specjalistycznego języka biznesowego i technicznego
+- Wszystkie analizy muszą być quantified (liczby, procenty, PLN)
+- Bazuj na metodologiach: Lean Six Sigma, BPMN 2.0, Time-Driven ABC, ADKAR
+- Praca opisowa, nie punktowa
+- Język polski, angielski tylko dla nazw własnych
+- Bez emoji
+
+Format odpowiedzi: JSON zgodny ze schematem."""
+        
+        user_prompt = f"""Przeanalizuj następujące dane organizacji i procesy:
+
+DANE ORGANIZACJI:
+{json.dumps(data.get('organization_data', {}), indent=2, ensure_ascii=False)}
+
+ODPOWIEDZI Z KWESTIONARIUSZA:
+{json.dumps(data.get('questionnaire_answers', {}), indent=2, ensure_ascii=False)}
+
+LISTA PROCESÓW BIZNESOWYCH:
+{json.dumps(data.get('processes_list', []), indent=2, ensure_ascii=False)}
+
+Wykonaj:
+1. Oceń dojrzałość cyfrową według 6 wymiarów (0-100 dla każdego)
+2. Dla każdego procesu oblicz scoring według potencjału automatyzacji (0-100)
+3. Kategoryzuj procesy na Tier 1-4
+4. Wybierz TOP 5 procesów do dalszej analizy (uzasadnij wybór)
+5. Przeanalizuj regulacje prawne wpływające na automatyzację
+6. Stwórz matrycę zależności między systemami IT
+
+Zwróć wynik w formacie JSON zgodnym z poniższym schematem:
+{{
+  "digital_maturity": {{
+    "process_maturity": 0-100,
+    "digital_infrastructure": 0-100,
+    "data_quality": 0-100,
+    "organizational_readiness": 0-100,
+    "financial_capacity": 0-100,
+    "strategic_alignment": 0-100,
+    "overall_score": 0-100,
+    "interpretation": "tekst"
+  }},
+  "processes_scoring": [
+    {{
+      "process_name": "nazwa",
+      "score": 0-100,
+      "tier": 1-4,
+      "rationale": "uzasadnienie"
+    }}
+  ],
+  "top_processes": ["proces1", "proces2", ...],
+  "legal_analysis": "tekst",
+  "system_dependencies": {{
+    "systems": ["system1", "system2", ...],
+    "matrix": [[...]]
+  }},
+  "recommendations": "tekst"
+}}"""
+        
+        try:
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=16000,
+                thinking={
+                    "type": "enabled",
+                    "budget_tokens": 10000
+                },
+                system=system_prompt,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": user_prompt
+                    }
+                ]
+            )
+            
+            # Extract text from response (skip thinking blocks)
+            result_text = ""
+            for block in response.content:
+                if block.type == "text":
+                    result_text += block.text
+            
+            result = json.loads(result_text)
+            
+            # Save to cache
+            save_step1_analysis(data, result)
+            
+            return result
+        except Exception as e:
+            logger.error(f"Step1 analysis failed: {e}")
+            raise ValueError(f"Claude API error: {str(e)}")
+    
+    def analyze_step2(self, process_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze process details for Step 2."""
+        if not self.client:
+            raise ValueError("Claude API key not configured")
+        
+        system_prompt = """Jesteś BFA automation-master, ekspertem w szczegółowej analizie procesów biznesowych.
+
+Twoja rola to analiza procesu AS-IS w celu:
+1. Identyfikacji 8 typów marnotrawstwa (Lean Six Sigma MUDA)
+2. Kalkulacji kosztów procesu (Time-Driven ABC)
+3. Identyfikacji wąskich gardeł (TOP 5)
+4. Oceny potencjału automatyzacji (%)
+5. Stworzenia opisu diagramu BPMN 2.0 AS-IS
+
+Zasady pracy:
+- Wszystkie koszty w PLN/rok
+- Wszystkie czasy w godzinach/minutach
+- Quantified metrics dla wszystkich analiz
+- Bazuj na metodologiach: Lean Six Sigma, BPMN 2.0, Time-Driven ABC
+- Język polski, angielski tylko dla nazw własnych
+- Bez emoji
+
+Format odpowiedzi: JSON zgodny ze schematem."""
+        
+        user_prompt = f"""Przeanalizuj szczegółowo następujący proces:
+
+DANE PROCESU:
+{json.dumps(process_data, indent=2, ensure_ascii=False)}
+
+Wykonaj:
+1. Zidentyfikuj 8 typów marnotrawstwa (MUDA) z kosztami dla każdego
+2. Oblicz koszty procesu metodą Time-Driven ABC
+3. Zidentyfikuj TOP 5 wąskich gardeł z wpływem na efektywność
+4. Oceń potencjał automatyzacji (% procesu możliwy do automatyzacji)
+5. Stwórz tekstowy opis diagramu BPMN 2.0 AS-IS (dla późniejszej wizualizacji)
+
+Zwróć wynik w formacie JSON zgodnym z poniższym schematem:
+{{
+  "muda_analysis": {{
+    "defects": {{"description": "tekst", "cost_per_year": 0}},
+    "overproduction": {{"description": "tekst", "cost_per_year": 0}},
+    "waiting": {{"description": "tekst", "cost_per_year": 0}},
+    "non_utilized_talent": {{"description": "tekst", "cost_per_year": 0}},
+    "transportation": {{"description": "tekst", "cost_per_year": 0}},
+    "inventory": {{"description": "tekst", "cost_per_year": 0}},
+    "motion": {{"description": "tekst", "cost_per_year": 0}},
+    "extra_processing": {{"description": "tekst", "cost_per_year": 0}},
+    "total_waste_cost": 0
+  }},
+  "process_costs": {{
+    "labor_costs": 0,
+    "operational_costs": 0,
+    "error_costs": 0,
+    "delay_costs": 0,
+    "total_cost": 0
+  }},
+  "bottlenecks": [
+    {{
+      "name": "nazwa",
+      "description": "opis",
+      "impact": "Niski/Średni/Wysoki",
+      "cost_per_year": 0
+    }}
+  ],
+  "automation_potential": {{
+    "percentage": 0-100,
+    "automatable_steps": ["krok1", "krok2", ...],
+    "rationale": "tekst"
+  }},
+  "bpmn_description": "tekstowy opis diagramu BPMN 2.0 AS-IS dla wizualizacji"
+}}"""
+        
+        try:
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=16000,
+                thinking={
+                    "type": "enabled",
+                    "budget_tokens": 10000
+                },
+                system=system_prompt,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": user_prompt
+                    }
+                ]
+            )
+            
+            # Extract text from response (skip thinking blocks)
+            result_text = ""
+            for block in response.content:
+                if block.type == "text":
+                    result_text += block.text
+            
+            return json.loads(result_text)
+        except Exception as e:
+            raise ValueError(f"Claude API error: {str(e)}")
+    
+    def analyze_step3(self, step2_results: Dict[str, Any], preferences: Dict[str, Any]) -> Dict[str, Any]:
+        """Research technologies and create budget scenarios for Step 3."""
+        if not self.client:
+            raise ValueError("Claude API key not configured")
+        
+        system_prompt = """Jesteś BFA automation-master, ekspertem w technologiach automatyzacyjnych i analizie ROI.
+
+Twoja rola to:
+1. Research technologii automatyzacyjnych (RPA, BPM, AI/ML, IDP, Low-Code, iPaaS)
+2. Identyfikacja i ocena vendorów
+3. Stworzenie 3 scenariuszy budżetowych (niski/średni/wysoki)
+4. Projektowanie procesu TO-BE dla każdego scenariusza
+5. Kalkulacja ROI, payback period, NPV
+6. Rekomendacje implementacyjne
+
+Zasady pracy:
+- Wszystkie koszty w PLN (CAPEX i OPEX)
+- Wszystkie korzyści quantified (PLN/rok)
+- ROI w %, payback w miesiącach
+- Bazuj na rzeczywistych cenach vendorów
+- Język polski, angielski tylko dla nazw własnych
+- Bez emoji
+
+Format odpowiedzi: JSON zgodny ze schematem."""
+        
+        user_prompt = f"""Na podstawie analizy procesu z Kroku 2, zaproponuj rozwiązania automatyzacyjne:
+
+DANE PROCESU Z KROKU 2:
+{json.dumps(step2_results, indent=2, ensure_ascii=False)}
+
+PREFERENCJE KLIENTA:
+{json.dumps(preferences, indent=2, ensure_ascii=False)}
+
+Wykonaj:
+1. Research technologii automatyzacyjnych odpowiednich dla tego procesu
+2. Oceń TOP 5-10 vendorów (funkcjonalność, cena, referencje)
+3. Stwórz 3 scenariusze budżetowe:
+   - Scenariusz 1: Budget-Conscious (niski budżet)
+   - Scenariusz 2: Strategic Implementation (średni budżet)
+   - Scenariusz 3: Enterprise Transformation (wysoki budżet)
+4. Dla każdego scenariusza:
+   - Zaproponuj konkretne rozwiązania (vendorzy, produkty)
+   - Oblicz koszty (CAPEX i OPEX)
+   - Zaprojektuj proces TO-BE
+   - Oblicz korzyści (oszczędności)
+   - Kalkuluj ROI (3 lata), payback period, NPV
+5. Rekomenduj optymalny scenariusz
+
+Zwróć wynik w formacie JSON."""
+        
+        try:
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=20000,
+                thinking={
+                    "type": "enabled",
+                    "budget_tokens": 15000
+                },
+                system=system_prompt,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": user_prompt
+                    }
+                ]
+            )
+            
+            # Extract text from response (skip thinking blocks)
+            result_text = ""
+            for block in response.content:
+                if block.type == "text":
+                    result_text += block.text
+            
+            return json.loads(result_text)
+        except Exception as e:
+            raise ValueError(f"Claude API error: {str(e)}")
