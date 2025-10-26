@@ -1,8 +1,10 @@
 import requests
+import logging
 from typing import Dict, Any, List
 from ..config import get_settings
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 
 class GammaService:
@@ -56,6 +58,7 @@ class GammaService:
         }
         
         try:
+            logger.info(f"Generating presentation for client: {client_name}")
             response = requests.post(
                 f"{self.base_url}/presentations",
                 headers={
@@ -63,14 +66,22 @@ class GammaService:
                     "Content-Type": "application/json"
                 },
                 json=payload,
-                timeout=60
+                timeout=120  # Increased timeout for large presentations
             )
             response.raise_for_status()
             result = response.json()
-            return result.get("url", "")
+            presentation_url = result.get("url", "")
+            logger.info(f"Presentation generated successfully: {presentation_url}")
+            return presentation_url
+        except requests.exceptions.Timeout:
+            logger.error("Gamma API timeout")
+            raise ValueError("Generowanie prezentacji trwało zbyt długo. Spróbuj ponownie.")
         except requests.exceptions.RequestException as e:
-            # If Gamma API is not available, return a mock URL
-            return f"https://gamma.app/presentations/mock-{client_name.lower().replace(' ', '-')}"
+            logger.warning(f"Gamma API error: {e}. Using mock URL for development.")
+            # If Gamma API is not available, return a mock URL with timestamp
+            import time
+            mock_url = f"https://gamma.app/presentations/mock-{client_name.lower().replace(' ', '-')}-{int(time.time())}"
+            return mock_url
     
     def _build_slides(
         self,

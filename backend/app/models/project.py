@@ -30,3 +30,5 @@ class Project(Base):
     step2_processes = relationship("Step2Process", back_populates="project", cascade="all, delete-orphan")
     step3_data = relationship("Step3Data", back_populates="project", uselist=False, cascade="all, delete-orphan")
     step4_outputs = relationship("Step4Output", back_populates="project", cascade="all, delete-orphan")
+    drafts = relationship("ProjectDraft", back_populates="project", cascade="all, delete-orphan")
+    activity_logs = relationship("ActivityLog", back_populates="project", cascade="all, delete-orphan")

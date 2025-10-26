@@ -1,6 +1,7 @@
 from typing import List, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+import logging
 from ..database import get_db
 from ..models.user import User
 from ..models.project import Project
@@ -8,7 +9,10 @@ from ..models.step2 import Step2Process
 from ..schemas.step2 import Step2ProcessData, Step2AnalysisResult
 from ..services.claude_service import ClaudeService
 from ..utils.auth import get_current_user
+from ..middleware.rate_limit import ai_analysis_rate_limit
+from ..middleware.security import sanitize_dict, validate_input
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/projects/{project_id}/step2", tags=["step2"])
 
 
@@ -80,13 +84,28 @@ def update_process(
             detail="Process not found"
         )
     
-    # Update process data
-    process.process_data = data.dict()
+    # Validate process data
+    from ..utils.validators import validate_process_steps, validate_costs
+    
+    process_dict = data.dict()
+    
+    # Validate steps
+    if 'as_is' in process_dict and 'steps' in process_dict['as_is']:
+        validate_process_steps(process_dict['as_is']['steps'])
+    
+    # Validate costs
+    if 'costs' in process_dict:
+        validate_costs(process_dict['costs'])
+    
+    # Sanitize and update process data
+    clean_data = sanitize_dict(process_dict)
+    process.process_data = clean_data
     
     db.commit()
     db.refresh(process)
     
-    return {"message": "Process data updated successfully"}
+    logger.info(f"Process {process_id} data updated for project {project_id}")
+    return {"message": "Process data updated successfully", "process_id": process_id}
 
 
 @router.post("/processes/{process_id}/analyze", response_model=Step2AnalysisResult)
@@ -94,7 +113,8 @@ def analyze_process(
     project_id: int,
     process_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    _rate_limit: bool = Depends(ai_analysis_rate_limit)
 ):
     """Analyze a process using Claude API."""
     # Verify project ownership

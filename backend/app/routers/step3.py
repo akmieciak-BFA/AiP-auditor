@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+import logging
 from ..database import get_db
 from ..models.user import User
 from ..models.project import Project
@@ -8,7 +9,9 @@ from ..models.step3 import Step3Data
 from ..schemas.step3 import Step3DataInput, Step3AnalysisResult
 from ..services.claude_service import ClaudeService
 from ..utils.auth import get_current_user
+from ..middleware.rate_limit import ai_analysis_rate_limit
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/projects/{project_id}/step3", tags=["step3"])
 
 
@@ -17,7 +20,8 @@ def analyze_step3(
     project_id: int,
     data: Step3DataInput,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    _rate_limit: bool = Depends(ai_analysis_rate_limit)
 ):
     """Analyze Step 3 - research technologies and create budget scenarios."""
     # Verify project ownership

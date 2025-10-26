@@ -2,15 +2,23 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, FolderOpen, Trash2, Clock } from 'lucide-react';
 import { projectsAPI } from '../services/api';
+import { useToastStore } from '../store/toastStore';
+import ConfirmDialog from '../components/ConfirmDialog';
+import LoadingSpinner from '../components/LoadingSpinner';
 import type { Project } from '../types';
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const toast = useToastStore();
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newClientName, setNewClientName] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; projectId: number | null }>({
+    show: false,
+    projectId: null,
+  });
 
   useEffect(() => {
     loadProjects();
@@ -22,6 +30,7 @@ export default function Dashboard() {
       setProjects(data);
     } catch (error) {
       console.error('Error loading projects:', error);
+      toast.error('Nie udało się załadować projektów');
     } finally {
       setIsLoading(false);
     }
@@ -37,20 +46,30 @@ export default function Dashboard() {
       setShowCreateModal(false);
       setNewProjectName('');
       setNewClientName('');
+      toast.success('Projekt utworzony pomyślnie!');
       navigate(`/project/${project.id}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating project:', error);
+      toast.error(error.response?.data?.message || 'Nie udało się utworzyć projektu');
     }
   };
 
   const handleDeleteProject = async (id: number) => {
-    if (!confirm('Czy na pewno chcesz usunąć ten projekt?')) return;
+    setDeleteConfirm({ show: true, projectId: id });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm.projectId) return;
     
     try {
-      await projectsAPI.delete(id);
+      await projectsAPI.delete(deleteConfirm.projectId);
+      toast.success('Projekt usunięty');
       loadProjects();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting project:', error);
+      toast.error(error.response?.data?.message || 'Nie udało się usunąć projektu');
+    } finally {
+      setDeleteConfirm({ show: false, projectId: null });
     }
   };
 
@@ -77,11 +96,7 @@ export default function Dashboard() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-400">Ładowanie projektów...</div>
-      </div>
-    );
+    return <LoadingSpinner message="Ładowanie projektów..." />;
   }
 
   return (
@@ -205,6 +220,19 @@ export default function Dashboard() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirm.show && (
+        <ConfirmDialog
+          title="Usuń Projekt"
+          message="Czy na pewno chcesz usunąć ten projekt? Ta operacja jest nieodwracalna i usunie wszystkie dane audytowe."
+          confirmLabel="Usuń"
+          cancelLabel="Anuluj"
+          variant="danger"
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteConfirm({ show: false, projectId: null })}
+        />
       )}
     </div>
   );

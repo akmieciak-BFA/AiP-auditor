@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { useToastStore } from '../store/toastStore';
 import { LogIn } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
   const { login, isLoading } = useAuthStore();
+  const toast = useToastStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -14,11 +16,25 @@ export default function Login() {
     e.preventDefault();
     setError('');
     
+    // Client-side validation
+    if (!email || !password) {
+      setError('Wypełnij wszystkie pola');
+      return;
+    }
+    
+    if (password.length < 6) {
+      setError('Hasło musi mieć minimum 6 znaków');
+      return;
+    }
+    
     try {
       await login(email, password);
+      toast.success('Zalogowano pomyślnie!');
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Błąd logowania');
+      const errorMsg = err.response?.data?.message || err.response?.data?.detail || 'Błąd logowania';
+      setError(errorMsg);
+      toast.error(errorMsg);
     }
   };
 

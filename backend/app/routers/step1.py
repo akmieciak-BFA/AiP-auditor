@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Dict, Any
+import logging
 from ..database import get_db
 from ..models.user import User
 from ..models.project import Project
@@ -8,9 +9,11 @@ from ..models.step1 import Step1Data
 from ..schemas.step1 import Step1DataInput, Step1AnalysisResult, OrganizationData
 from ..services.claude_service import ClaudeService
 from ..utils.auth import get_current_user
+from ..utils.validators import validate_processes_list, validate_questionnaire_answers
 from ..middleware.rate_limit import form_generation_rate_limit, ai_analysis_rate_limit
 from ..middleware.security import sanitize_dict, validate_input
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/projects/{project_id}/step1", tags=["step1"])
 
 
@@ -73,13 +76,22 @@ def analyze_step1(
             detail="Project not found"
         )
     
+    # Validate inputs
+    clean_processes = validate_processes_list(data.processes_list)
+    validate_questionnaire_answers(data.questionnaire_answers)
+    
+    # Sanitize data
+    clean_org_data = sanitize_dict(data.organization_data.dict())
+    clean_answers = sanitize_dict(data.questionnaire_answers)
+    
     # Call Claude API
     claude_service = ClaudeService()
     try:
+        logger.info(f"Analyzing Step 1 for project {project_id}")
         analysis_results = claude_service.analyze_step1({
-            "organization_data": data.organization_data.dict(),
-            "questionnaire_answers": data.questionnaire_answers,
-            "processes_list": data.processes_list
+            "organization_data": clean_org_data,
+            "questionnaire_answers": clean_answers,
+            "processes_list": clean_processes
         })
     except Exception as e:
         raise HTTPException(

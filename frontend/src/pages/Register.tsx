@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { useToastStore } from '../store/toastStore';
 import { UserPlus } from 'lucide-react';
 
 export default function Register() {
   const navigate = useNavigate();
   const { register: registerUser, isLoading } = useAuthStore();
+  const toast = useToastStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -15,11 +17,36 @@ export default function Register() {
     e.preventDefault();
     setError('');
     
+    // Client-side validation
+    if (!name || !email || !password) {
+      setError('Wypełnij wszystkie pola');
+      return;
+    }
+    
+    if (name.length < 2) {
+      setError('Imię i nazwisko musi mieć minimum 2 znaki');
+      return;
+    }
+    
+    if (password.length < 6) {
+      setError('Hasło musi mieć minimum 6 znaków');
+      return;
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Nieprawidłowy format email');
+      return;
+    }
+    
     try {
       await registerUser(email, password, name);
+      toast.success('Konto utworzone pomyślnie!');
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Błąd rejestracji');
+      const errorMsg = err.response?.data?.message || err.response?.data?.detail || 'Błąd rejestracji';
+      setError(errorMsg);
+      toast.error(errorMsg);
     }
   };
 
