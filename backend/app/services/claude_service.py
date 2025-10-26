@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 from anthropic import Anthropic
 from ..config import get_settings
 from .cache_service import (

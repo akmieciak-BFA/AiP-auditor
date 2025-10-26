@@ -20,15 +20,10 @@ router = APIRouter(prefix="/api/projects/{project_id}/step4", tags=["step4"])
 def generate_presentation(
     project_id: int,
     request_data: Step4GenerateRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """Generate presentation using Gamma API."""
-    # Verify project ownership
-    project = db.query(Project).filter(
-        Project.id == project_id,
-        Project.user_id == current_user.id
-    ).first()
+    project = db.query(Project).filter(Project.id == project_id).first()
     
     if not project:
         raise HTTPException(
@@ -114,15 +109,10 @@ def generate_presentation(
 @router.get("/downloads", response_model=List[Step4OutputSchema])
 def get_downloads(
     project_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """Get all generated outputs for a project."""
-    # Verify project ownership
-    project = db.query(Project).filter(
-        Project.id == project_id,
-        Project.user_id == current_user.id
-    ).first()
+    project = db.query(Project).filter(Project.id == project_id).first()
     
     if not project:
         raise HTTPException(

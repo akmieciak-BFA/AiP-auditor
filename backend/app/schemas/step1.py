@@ -103,3 +103,7 @@ class Step1AnalysisResult(BaseModel):
     system_dependencies: Dict[str, Any]
     recommendations: str
     bfa_scoring: Dict[str, Any]  # 6-dimensional framework scores
+
+
+# Alias for compatibility
+Step1DataInput = InitialAssessmentData

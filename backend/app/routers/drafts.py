@@ -16,15 +16,10 @@ def save_draft(
     project_id: int,
     step: str,
     draft_data: Dict[str, Any],
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """Save draft data for a project step (auto-save)."""
-    # Verify project ownership
-    project = db.query(Project).filter(
-        Project.id == project_id,
-        Project.user_id == current_user.id
-    ).first()
+    project = db.query(Project).filter(Project.id == project_id).first()
     
     if not project:
         raise HTTPException(
@@ -66,15 +61,10 @@ def save_draft(
 def load_draft(
     project_id: int,
     step: str,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """Load draft data for a project step."""
-    # Verify project ownership
-    project = db.query(Project).filter(
-        Project.id == project_id,
-        Project.user_id == current_user.id
-    ).first()
+    project = db.query(Project).filter(Project.id == project_id).first()
     
     if not project:
         raise HTTPException(
@@ -107,15 +97,10 @@ def load_draft(
 def clear_draft(
     project_id: int,
     step: str,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """Clear draft data for a project step."""
-    # Verify project ownership
-    project = db.query(Project).filter(
-        Project.id == project_id,
-        Project.user_id == current_user.id
-    ).first()
+    project = db.query(Project).filter(Project.id == project_id).first()
     
     if not project:
         raise HTTPException(
@@ -142,15 +127,10 @@ def clear_draft(
 @router.get("/all")
 def get_all_drafts(
     project_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """Get all drafts for a project."""
-    # Verify project ownership
-    project = db.query(Project).filter(
-        Project.id == project_id,
-        Project.user_id == current_user.id
-    ).first()
+    project = db.query(Project).filter(Project.id == project_id).first()
     
     if not project:
         raise HTTPException(

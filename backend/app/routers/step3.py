@@ -20,15 +20,10 @@ def analyze_step3(
     project_id: int,
     data: Step3DataInput,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
     _rate_limit: bool = Depends(ai_analysis_rate_limit)
 ):
     """Analyze Step 3 - research technologies and create budget scenarios."""
-    # Verify project ownership
-    project = db.query(Project).filter(
-        Project.id == project_id,
-        Project.user_id == current_user.id
-    ).first()
+    project = db.query(Project).filter(Project.id == project_id).first()
     
     if not project:
         raise HTTPException(
@@ -122,15 +117,10 @@ def analyze_step3(
 @router.get("/results")
 def get_step3_results(
     project_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """Get Step 3 analysis results."""
-    # Verify project ownership
-    project = db.query(Project).filter(
-        Project.id == project_id,
-        Project.user_id == current_user.id
-    ).first()
+    project = db.query(Project).filter(Project.id == project_id).first()
     
     if not project:
         raise HTTPException(
