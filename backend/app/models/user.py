@@ -15,5 +15,5 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    projects = relationship("Project", back_populates="user", cascade="all, delete-orphan")
-    activity_logs = relationship("ActivityLog", back_populates="user", cascade="all, delete-orphan")
+    # Note: User model is kept for authentication endpoints but not used for project ownership
+    # Projects are accessible without authentication in the current version

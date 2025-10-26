@@ -32,7 +32,7 @@ def test_imports():
     
     # Test 3: Models
     try:
-        from app.models import User, Project, Step1Data, Step2Process, Step3Data, Step4Output, ProjectDraft, ActivityLog
+        from app.models import User, Project, Step1Data, Step2Process, Step3Data, Step4Output, ProjectDraft
         print("✅ Models import OK")
         tests_passed += 1
     except Exception as e:
