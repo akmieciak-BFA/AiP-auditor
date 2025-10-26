@@ -3,11 +3,21 @@ BFA Audit App - Main Application
 ================================
 
 FastAPI application with all calculator endpoints
+OPTIMIZED VERSION with logging, rate limiting, and request tracing
 """
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .api.calculator_endpoints import router as calculator_router
+from .middleware.rate_limiter import RateLimiter
+from .middleware.request_tracer import RequestTracerMiddleware
+from .utils.logging_config import setup_logging
+import os
+
+# Setup structured logging
+log_level = os.getenv('LOG_LEVEL', 'INFO')
+structured_logging = os.getenv('STRUCTURED_LOGGING', 'true').lower() == 'true'
+setup_logging(level=log_level, structured=structured_logging)
 
 # Create FastAPI app
 app = FastAPI(
@@ -30,20 +40,34 @@ app = FastAPI(
     5. RPA/AI Automation Metrics
     6. Benchmarking & Maturity Assessment
     7. Scenario Planning & Sensitivity Analysis
+    
+    ✨ NEW FEATURES (Optimized):
+    - Structured logging with trace IDs
+    - Rate limiting (60 req/min by default)
+    - Request tracing for debugging
+    - Enhanced input validation
     """,
-    version="1.0.0",
+    version="1.1.0",  # Bumped version for optimization release
     docs_url="/docs",
     redoc_url="/redoc",
 )
 
-# CORS middleware
+# Add middleware (order matters!)
+# 1. CORS (first to handle preflight)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify allowed origins
+    allow_origins=os.getenv('ALLOWED_ORIGINS', '*').split(','),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 2. Request Tracer (add trace IDs)
+app.add_middleware(RequestTracerMiddleware)
+
+# 3. Rate Limiter (protect from abuse)
+rate_limit = int(os.getenv('RATE_LIMIT_PER_MINUTE', '60'))
+app.add_middleware(RateLimiter, requests_per_minute=rate_limit)
 
 # Include routers
 app.include_router(calculator_router)
