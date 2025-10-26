@@ -1,14 +1,20 @@
 import { useState } from 'react';
-import { Loader, FileText } from 'lucide-react';
+import { Loader, FileText, Upload, FileEdit } from 'lucide-react';
 import { step1API } from '../services/api';
 import type { Step1Result } from '../types';
+import DocumentUploadInterface from './DocumentUploadInterface';
+import ReviewExtractedData from './ReviewExtractedData';
 
 interface Step1FormProps {
   projectId: number;
   onComplete: () => void;
 }
 
+type InputMode = 'choose' | 'manual' | 'upload' | 'review';
+
 export default function Step1Form({ projectId, onComplete }: Step1FormProps) {
+  const [inputMode, setInputMode] = useState<InputMode>('choose');
+  const [processingResultId, setProcessingResultId] = useState<number | null>(null);
   const [currentSection, setCurrentSection] = useState(1);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState('');
@@ -166,6 +172,32 @@ export default function Step1Form({ projectId, onComplete }: Step1FormProps) {
     }
   };
 
+  // Handle document upload completion
+  const handleDocumentUploadComplete = (resultId: number) => {
+    setProcessingResultId(resultId);
+    setInputMode('review');
+  };
+
+  // Handle review confirmation
+  const handleReviewConfirm = async (extractedData: any) => {
+    setIsAnalyzing(true);
+    setError('');
+
+    try {
+      const result = await step1API.analyze(projectId, {
+        organization_data: extractedData,
+        questionnaire_answers: {},
+        processes_list: [],
+      });
+      setResults(result);
+      setTimeout(() => onComplete(), 2000);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Błąd analizy');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   if (results) {
     return (
       <div className="space-y-6">
@@ -177,8 +209,111 @@ export default function Step1Form({ projectId, onComplete }: Step1FormProps) {
     );
   }
 
+  // Mode Selection
+  if (inputMode === 'choose') {
+    return (
+      <div className="space-y-6">
+        <div className="bg-dark-800 p-6 rounded-lg">
+          <h2 className="text-2xl font-bold text-white mb-2">
+            Krok 1: Wybierz metodę wprowadzania danych
+          </h2>
+          <p className="text-gray-400 mb-6">
+            Możesz wprowadzić dane ręcznie wypełniając formularz lub przesłać dokumenty, które Claude automatycznie przeanalizuje.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Manual Form Option */}
+          <button
+            onClick={() => setInputMode('manual')}
+            className="bg-dark-800 hover:bg-dark-700 border-2 border-dark-600 hover:border-primary-500 rounded-lg p-8 transition-all text-left group"
+          >
+            <FileEdit className="w-16 h-16 text-primary-500 mb-4 group-hover:scale-110 transition-transform" />
+            <h3 className="text-xl font-bold text-white mb-2">Formularz manualny</h3>
+            <p className="text-gray-400 mb-4">
+              Wypełnij szczegółowy formularz z 20 pytaniami w 5 sekcjach. 
+              Idealny dla nowych audytów lub gdy chcesz pełną kontrolę nad danymi.
+            </p>
+            <ul className="text-sm text-gray-500 space-y-1">
+              <li>• 5 sekcji tematycznych</li>
+              <li>• 20 pytań strukturyzowanych</li>
+              <li>• ~15-20 minut wypełniania</li>
+              <li>• Pełna kontrola nad danymi</li>
+            </ul>
+          </button>
+
+          {/* Document Upload Option */}
+          <button
+            onClick={() => setInputMode('upload')}
+            className="bg-dark-800 hover:bg-dark-700 border-2 border-dark-600 hover:border-primary-500 rounded-lg p-8 transition-all text-left group"
+          >
+            <Upload className="w-16 h-16 text-primary-500 mb-4 group-hover:scale-110 transition-transform" />
+            <h3 className="text-xl font-bold text-white mb-2">Prześlij dokumenty</h3>
+            <p className="text-gray-400 mb-4">
+              Prześlij istniejące dokumenty (Excel, PDF, TXT, MD, CSV). 
+              Claude automatycznie wyciągnie i zmapuje dane na strukturę audytu.
+            </p>
+            <ul className="text-sm text-gray-500 space-y-1">
+              <li>• Excel, PDF, TXT, MD, CSV</li>
+              <li>• Do 10 plików (200MB)</li>
+              <li>• Automatyczna ekstrakcja danych</li>
+              <li>• Możliwość edycji po przetworzeniu</li>
+            </ul>
+            <div className="mt-4 bg-primary-500/10 border border-primary-500 rounded px-3 py-1 inline-block">
+              <span className="text-primary-500 text-xs font-semibold">🤖 Powered by Claude Extended Thinking</span>
+            </div>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Document Upload Mode
+  if (inputMode === 'upload') {
+    return (
+      <div className="space-y-6">
+        <button
+          onClick={() => setInputMode('choose')}
+          className="text-gray-400 hover:text-white flex items-center space-x-2"
+        >
+          <span>← Powrót do wyboru metody</span>
+        </button>
+        
+        <DocumentUploadInterface
+          projectId={projectId}
+          onComplete={handleDocumentUploadComplete}
+        />
+      </div>
+    );
+  }
+
+  // Review Extracted Data Mode
+  if (inputMode === 'review' && processingResultId) {
+    return (
+      <div className="space-y-6">
+        <ReviewExtractedData
+          projectId={projectId}
+          processingResultId={processingResultId}
+          onConfirm={handleReviewConfirm}
+          onBack={() => setInputMode('upload')}
+        />
+      </div>
+    );
+  }
+
+  // Manual Form Mode (original form)
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
+      <div className="flex justify-between items-center">
+        <button
+          type="button"
+          onClick={() => setInputMode('choose')}
+          className="text-gray-400 hover:text-white flex items-center space-x-2"
+        >
+          <span>← Powrót do wyboru metody</span>
+        </button>
+      </div>
+
       <div className="bg-dark-800 p-6 rounded-lg">
         <h2 className="text-2xl font-bold text-white mb-2">
           Krok 1: Formularz Początkowy - Audyt Automatyzacyjny BFA

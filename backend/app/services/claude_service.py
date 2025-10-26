@@ -18,6 +18,8 @@ class ClaudeService:
     def __init__(self):
         self.client = Anthropic(api_key=settings.claude_api_key) if settings.claude_api_key else None
         self.model = "claude-sonnet-4"
+        self.default_max_tokens = 16000
+        self.document_processing_max_tokens = 200000  # Increased for document processing
     
     def generate_step1_form(self, organization_data: Dict[str, Any]) -> Dict[str, Any]:
         """Generate dynamic form for Step 1 based on organization data."""
@@ -460,6 +462,189 @@ Zwróć wynik w formacie JSON zgodnym z poniższym schematem:
             
             return json.loads(result_text)
         except Exception as e:
+            raise ValueError(f"Claude API error: {str(e)}")
+    
+    def extract_data_from_documents(self, parsed_documents: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Extract structured data from uploaded documents using Claude with extended thinking."""
+        if not self.client:
+            raise ValueError("Claude API key not configured")
+        
+        logger.info(f"Extracting data from {len(parsed_documents)} documents")
+        
+        system_prompt = """Jesteś BFA automation-master, ekspertem w analizie dokumentów biznesowych i ekstrakcji danych.
+
+Otrzymałeś dokumenty (Excel, PDF, TXT, MD, CSV) przesłane przez klienta. Twoja rola to:
+
+1. DOKŁADNA EKSTRAKCJA DANYCH
+   - Przeanalizuj wszystkie dokumenty
+   - Wyciągnij dane i zmapuj je na strukturę BFA Step 1 (20 pytań, 5 sekcji)
+   - Szukaj informacji o: organizacji, procesach, problemach, celach, budżecie, zasobach, strategii
+
+2. INTELIGENTNE MAPOWANIE
+   - Rozpoznaj synonimy i różne nazewnictwo
+   - Mapuj niekompletne dane na najbliższą kategorię
+   - Wyciągaj liczby, metryki, koszty, czasy
+   - Identyfikuj procesy biznesowe (nazwa, opis, problemy, volume, frequency)
+
+3. CONFIDENCE SCORING (0.0-1.0)
+   - 1.0 = dane explicite w dokumentach
+   - 0.7-0.9 = dane wywnioskowane z kontekstu
+   - 0.4-0.6 = dane częściowe
+   - 0.0-0.3 = brak danych
+
+4. MISSING FIELDS
+   - Zidentyfikuj pola których NIE MA w dokumentach
+   - Zaproponuj pytania do uzupełnienia
+
+ZASADY:
+- Dokładność > Kompletność (lepiej pominąć niż zgadywać)
+- Szukaj w tabelach, wykresach, notatkach
+- Rozumiej kontekst biznesowy i intencje
+- Priorytet dla liczb i konkretnych metryk
+- Język polski w output
+
+Format output: JSON z kluczami:
+- extracted_data (pełna struktura InitialAssessmentData)
+- confidence_scores (per sekcja 0.0-1.0)
+- missing_fields (lista z suggested_question)
+- processing_summary (key_findings, data_quality, recommendations)"""
+
+        # Prepare documents summary for Claude
+        documents_content = []
+        for doc in parsed_documents:
+            doc_summary = f"\n\n=== DOKUMENT: {doc['filename']} ===\n"
+            doc_summary += f"Typ: {doc['type']}\n\n"
+            
+            if doc['type'] == 'excel':
+                for sheet_name, sheet_data in doc.get('sheets', {}).items():
+                    doc_summary += f"\n--- Sheet: {sheet_name} ---\n"
+                    # Include dataframe if available, otherwise raw data
+                    if 'dataframe' in sheet_data:
+                        doc_summary += f"Kolumny: {', '.join(sheet_data.get('columns', []))}\n"
+                        doc_summary += f"Dane (pierwsze 100 wierszy):\n{json.dumps(sheet_data['dataframe'][:100], ensure_ascii=False, indent=2)}\n"
+                    elif 'data' in sheet_data:
+                        doc_summary += f"Dane:\n{json.dumps(sheet_data['data'][:50], ensure_ascii=False)}\n"
+            
+            elif doc['type'] == 'pdf':
+                doc_summary += f"Liczba stron: {doc.get('pages', 0)}\n"
+                doc_summary += f"Treść:\n{doc.get('full_text', '')[:10000]}\n"  # First 10k chars
+            
+            elif doc['type'] in ['text', 'markdown']:
+                if 'sections' in doc:
+                    for section in doc['sections']:
+                        doc_summary += f"\n## {section['title']}\n{section['content']}\n"
+                else:
+                    doc_summary += doc.get('content', '')[:10000]
+            
+            elif doc['type'] == 'csv':
+                doc_summary += f"Kolumny: {', '.join(doc.get('columns', []))}\n"
+                doc_summary += f"Dane (pierwsze 100 wierszy):\n{json.dumps(doc.get('data', [])[:100], ensure_ascii=False, indent=2)}\n"
+            
+            documents_content.append(doc_summary)
+
+        user_prompt = f"""Przeanalizuj następujące dokumenty i wyciągnij dane dla audytu BFA:
+
+{chr(10).join(documents_content)}
+
+Zmapuj dane na strukturę InitialAssessmentData (20 pytań):
+
+SEKCJA A: INFORMACJE ORGANIZACYJNE
+- organization_name, industry, company_size, annual_revenue, headquarters_location, number_of_locations
+- functional_areas (lista), critical_areas (TOP 3)
+- digital_maturity (10 obszarów, 0-10): erp, crm, production, rpa, analytics, iot, ai, communication, workflow, cloud
+- it_systems (dict), systems_integrated
+- budget_range, budget_sources, expected_payback_months
+
+SEKCJA B: IDENTYFIKACJA PROBLEMÓW
+- main_challenges_ranked (lista 12 challenges)
+- challenges_description (opis tekstowy)
+- time_consuming_processes (dict: process_name -> hours/week)
+- error_prone_processes (dict: process_name -> {{frequency, error_rate}})
+- bottlenecks (dict: process_name -> {{impact_rating, wait_time}})
+- process_maturity (dict: process_name -> {{repeatability, standardization, documentation}})
+
+SEKCJA C: CELE I OCZEKIWANIA
+- automation_goals_ranked (lista 8 goals)
+- automation_goals_weights (dict suma=100%)
+- expected_cost_reduction_percent, expected_revenue_increase_percent, expected_roi_percent
+- acceptable_payback_months, specific_savings_goal, savings_sources_description
+- operational_targets (dict z różnymi metrykami)
+- employee_expectations, change_management_readiness
+
+SEKCJA D: ZASOBY
+- has_it_team, it_team_size, has_bpm_department, bpm_team_size
+- automation_experience, has_project_manager, has_change_manager
+- stakeholder_availability
+- constraints_and_risks (dict: risk_name -> impact_rating 1-5)
+- special_requirements (lista)
+
+SEKCJA E: STRATEGIA
+- business_strategy_description (3-5 lat)
+- strategic_initiatives (lista)
+- additional_notes
+
+Zwróć JSON:
+{{
+  "extracted_data": {{
+    // pełna struktura InitialAssessmentData
+  }},
+  "confidence_scores": {{
+    "organization": 0.0-1.0,
+    "digital_maturity": 0.0-1.0,
+    "pain_points": 0.0-1.0,
+    "goals": 0.0-1.0,
+    "budget": 0.0-1.0,
+    "timeline": 0.0-1.0,
+    "resources": 0.0-1.0,
+    "constraints": 0.0-1.0,
+    "processes_identified": 0.0-1.0
+  }},
+  "missing_fields": [
+    {{
+      "field": "budget.amount_range",
+      "reason": "Brak informacji w dokumentach",
+      "suggested_question": "Jaki budżet macie na automatyzację?"
+    }}
+  ],
+  "processing_summary": {{
+    "documents_analyzed": {len(parsed_documents)},
+    "total_pages": 0,
+    "key_findings": ["finding1", "finding2", ...],
+    "data_quality": "excellent|good|fair|poor",
+    "recommendations": ["rec1", "rec2", ...]
+  }}
+}}"""
+
+        try:
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=self.document_processing_max_tokens,
+                thinking={
+                    "type": "enabled",
+                    "budget_tokens": 50000  # Large budget for document analysis
+                },
+                system=system_prompt,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": user_prompt
+                    }
+                ]
+            )
+            
+            # Extract text from response
+            result_text = ""
+            for block in response.content:
+                if block.type == "text":
+                    result_text += block.text
+            
+            result = json.loads(result_text)
+            
+            logger.info(f"Successfully extracted data from documents. Data quality: {result.get('processing_summary', {}).get('data_quality', 'unknown')}")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Document data extraction failed: {e}")
             raise ValueError(f"Claude API error: {str(e)}")
     
     def analyze_step3(self, step2_results: Dict[str, Any], preferences: Dict[str, Any]) -> Dict[str, Any]:

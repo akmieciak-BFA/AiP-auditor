@@ -30,3 +30,5 @@ class Project(Base):
     step4_outputs = relationship("Step4Output", back_populates="project", cascade="all, delete-orphan")
     drafts = relationship("ProjectDraft", back_populates="project", cascade="all, delete-orphan")
     activity_logs = relationship("ActivityLog", back_populates="project", cascade="all, delete-orphan")
+    uploaded_documents = relationship("UploadedDocument", back_populates="project", cascade="all, delete-orphan")
+    document_processing_results = relationship("DocumentProcessingResult", back_populates="project", cascade="all, delete-orphan")
