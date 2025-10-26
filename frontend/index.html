@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BFA Audit App - ROI/TCO Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            margin-bottom: 2rem;
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 0.5rem;
+        }
+
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .module-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .module-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .module-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .module-card p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            line-height: 1.5;
+        }
+
+        .api-links {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-top: 1.5rem;
+        }
+
+        .api-link {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .api-link:hover {
+            background: #764ba2;
+        }
+
+        .quick-start {
+            background: #f7fafc;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .quick-start h3 {
+            color: #2d3748;
+            margin-bottom: 1rem;
+        }
+
+        .quick-start code {
+            display: block;
+            background: #2d3748;
+            color: #fff;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .feature {
+            display: flex;
+            align-items: start;
+            gap: 0.75rem;
+        }
+
+        .feature-icon {
+            font-size: 1.5rem;
+        }
+
+        .feature-text h4 {
+            color: #2d3748;
+            margin-bottom: 0.25rem;
+        }
+
+        .feature-text p {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .stat {
+            text-align: center;
+            padding: 1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 BFA Audit App</h1>
+            <p>Advanced ROI/TCO Calculator for Business Process Automation</p>
+        </div>
+
+        <div class="card">
+            <h2>📊 Calculator Modules</h2>
+            <div class="modules-grid">
+                <div class="module-card">
+                    <h3>1. Financial Impact</h3>
+                    <p>Calculate ROIC, NPV, IRR, Payback Period, and ROI% based on capital requirements and life cycle costs.</p>
+                </div>
+                <div class="module-card">
+                    <h3>2. TDABC Analysis</h3>
+                    <p>Time-Driven Activity-Based Costing for understanding process costs and capacity utilization.</p>
+                </div>
+                <div class="module-card">
+                    <h3>3. Digital ROI</h3>
+                    <p>6-dimensional assessment covering Customers, Employees, Operations, Security, Infrastructure, and Innovation.</p>
+                </div>
+                <div class="module-card">
+                    <h3>4. IoT Metrics</h3>
+                    <p>Connectivity value, OEE improvement, predictive maintenance, and energy optimization for IoT projects.</p>
+                </div>
+                <div class="module-card">
+                    <h3>5. RPA Metrics</h3>
+                    <p>FTE savings, accuracy improvements, velocity gains, and bot utilization for RPA initiatives.</p>
+                </div>
+                <div class="module-card">
+                    <h3>6. Benchmarking</h3>
+                    <p>Compare with industry averages and assess automation maturity across 5 levels.</p>
+                </div>
+                <div class="module-card">
+                    <h3>7. Scenario Planning</h3>
+                    <p>Compare 3 budget scenarios with sensitivity analysis and Monte Carlo simulation.</p>
+                </div>
+                <div class="module-card">
+                    <h3>🎯 Comprehensive</h3>
+                    <p>All-in-one analysis with executive summary and recommendations across all modules.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>✨ Key Features</h2>
+            <div class="features">
+                <div class="feature">
+                    <div class="feature-icon">📈</div>
+                    <div class="feature-text">
+                        <h4>Industry-Leading Methods</h4>
+                        <p>Based on Emerson, Siemens, Blue Prism, PwC, and HBR</p>
+                    </div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🎯</div>
+                    <div class="feature-text">
+                        <h4>Comprehensive Analysis</h4>
+                        <p>7 specialized calculator modules</p>
+                    </div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-text">
+                        <h4>Industry Benchmarks</h4>
+                        <p>Compare across 5 industries</p>
+                    </div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🔬</div>
+                    <div class="feature-text">
+                        <h4>Risk Analysis</h4>
+                        <p>Sensitivity & Monte Carlo</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📈 Project Statistics</h2>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-number">7</div>
+                    <div class="stat-label">Calculator Modules</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">11</div>
+                    <div class="stat-label">API Endpoints</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">5</div>
+                    <div class="stat-label">Industries</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">33+</div>
+                    <div class="stat-label">Unit Tests</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🚀 Quick Start</h2>
+            <div class="quick-start">
+                <h3>1. Start the Server</h3>
+                <code>python run.py</code>
+            </div>
+            <div class="quick-start" style="margin-top: 1rem;">
+                <h3>2. Access API Documentation</h3>
+                <div class="api-links">
+                    <a href="http://localhost:8000/docs" class="api-link" target="_blank">Swagger UI</a>
+                    <a href="http://localhost:8000/redoc" class="api-link" target="_blank">ReDoc</a>
+                    <a href="http://localhost:8000/api/calculator/health" class="api-link" target="_blank">Health Check</a>
+                </div>
+            </div>
+            <div class="quick-start" style="margin-top: 1rem;">
+                <h3>3. Try Example Usage</h3>
+                <code>python examples/example_usage.py</code>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📚 Documentation</h2>
+            <div class="api-links">
+                <a href="../README.md" class="api-link">README</a>
+                <a href="../docs/USER_GUIDE.md" class="api-link">User Guide</a>
+                <a href="../IMPLEMENTATION_SUMMARY.md" class="api-link">Implementation Summary</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
