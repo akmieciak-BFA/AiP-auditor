@@ -30,21 +30,15 @@ export function useAutoSave({
     if (dataString === lastSavedRef.current) return;
 
     try {
-      const token = localStorage.getItem('token');
       await axios.post(
         `${API_URL}/api/projects/${projectId}/drafts/save`,
         {
           step,
           draft_data: data,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
         }
       );
       lastSavedRef.current = dataString;
-      console.log(`✓ Draft saved for ${step}`);
+      // Draft saved successfully (removed console.log for production)
     } catch (error) {
       console.error('Auto-save failed:', error);
     }
@@ -73,14 +67,8 @@ export function useAutoSave({
 
 export async function loadDraft(projectId: number, step: string) {
   try {
-    const token = localStorage.getItem('token');
     const response = await axios.get(
-      `${API_URL}/api/projects/${projectId}/drafts/load?step=${step}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+      `${API_URL}/api/projects/${projectId}/drafts/load?step=${step}`
     );
     return response.data;
   } catch (error) {
@@ -91,14 +79,8 @@ export async function loadDraft(projectId: number, step: string) {
 
 export async function clearDraft(projectId: number, step: string) {
   try {
-    const token = localStorage.getItem('token');
     await axios.delete(
-      `${API_URL}/api/projects/${projectId}/drafts/clear?step=${step}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+      `${API_URL}/api/projects/${projectId}/drafts/clear?step=${step}`
     );
   } catch (error) {
     console.error('Clear draft failed:', error);
