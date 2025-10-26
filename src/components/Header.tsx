@@ -1,6 +1,10 @@
-import { useState } from 'react';
+import { useState, useCallback, useRef, memo } from 'react';
 import styled from 'styled-components';
 import { theme } from '../styles/theme';
+import { media, containerStyles } from '../utils/mediaQueries';
+import { NAVIGATION_LINKS, APP_CONFIG } from '../constants';
+import { Icon } from './common/Icon';
+import { useClickOutside } from '../hooks/useClickOutside';
 
 const HeaderContainer = styled.header`
   position: sticky;
@@ -13,17 +17,13 @@ const HeaderContainer = styled.header`
 `;
 
 const HeaderContent = styled.div`
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: ${theme.spacing.md} ${theme.spacing.xl};
+  ${containerStyles}
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: ${theme.spacing.xl};
-
-  @media (max-width: ${theme.breakpoints.md}) {
-    padding: ${theme.spacing.md};
-  }
+  padding-top: ${theme.spacing.md};
+  padding-bottom: ${theme.spacing.md};
 `;
 
 const Logo = styled.div`
@@ -42,7 +42,7 @@ const LogoImage = styled.img`
   height: 50px;
   width: auto;
 
-  @media (max-width: ${theme.breakpoints.sm}) {
+  ${media.sm} {
     height: 40px;
   }
 `;
@@ -51,7 +51,7 @@ const LogoText = styled.div`
   display: flex;
   flex-direction: column;
   
-  @media (max-width: ${theme.breakpoints.sm}) {
+  ${media.sm} {
     display: none;
   }
 `;
@@ -76,7 +76,7 @@ const Nav = styled.nav<{ $isOpen: boolean }>`
   align-items: center;
   gap: ${theme.spacing.lg};
 
-  @media (max-width: ${theme.breakpoints.md}) {
+  ${media.md} {
     position: fixed;
     top: 70px;
     left: 0;
@@ -87,15 +87,16 @@ const Nav = styled.nav<{ $isOpen: boolean }>`
     box-shadow: ${theme.shadows.lg};
     transform: translateY(${props => props.$isOpen ? '0' : '-100%'});
     opacity: ${props => props.$isOpen ? '1' : '0'};
+    visibility: ${props => props.$isOpen ? 'visible' : 'hidden'};
     transition: all ${theme.transitions.base};
     pointer-events: ${props => props.$isOpen ? 'all' : 'none'};
   }
 `;
 
-const NavLink = styled.a`
-  color: ${theme.colors.neutral.gray700};
+const NavLink = styled.a<{ $active?: boolean }>`
+  color: ${props => props.$active ? theme.colors.primary.brandDark : theme.colors.neutral.gray700};
   text-decoration: none;
-  font-weight: ${theme.typography.fontWeight.medium};
+  font-weight: ${props => props.$active ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium};
   font-size: ${theme.typography.fontSize.base};
   position: relative;
   padding: ${theme.spacing.sm} 0;
@@ -106,7 +107,7 @@ const NavLink = styled.a`
     position: absolute;
     bottom: 0;
     left: 0;
-    width: 0;
+    width: ${props => props.$active ? '100%' : '0'};
     height: 2px;
     background: ${theme.colors.gradients.primary};
     transition: ${theme.transitions.base};
@@ -114,15 +115,6 @@ const NavLink = styled.a`
 
   &:hover {
     color: ${theme.colors.primary.teal};
-
-    &::after {
-      width: 100%;
-    }
-  }
-
-  &.active {
-    color: ${theme.colors.primary.brandDark};
-    font-weight: ${theme.typography.fontWeight.semibold};
 
     &::after {
       width: 100%;
@@ -150,6 +142,11 @@ const CTAButton = styled.button`
   &:active {
     transform: translateY(0);
   }
+
+  &:focus-visible {
+    outline: 2px solid ${theme.colors.primary.teal};
+    outline-offset: 2px;
+  }
 `;
 
 const MenuButton = styled.button`
@@ -159,61 +156,78 @@ const MenuButton = styled.button`
   cursor: pointer;
   padding: ${theme.spacing.sm};
   color: ${theme.colors.primary.brandDark};
-
-  @media (max-width: ${theme.breakpoints.md}) {
-    display: block;
+  
+  ${media.md} {
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  svg {
-    width: 24px;
-    height: 24px;
+  &:focus-visible {
+    outline: 2px solid ${theme.colors.primary.teal};
+    outline-offset: 2px;
   }
 `;
 
-export const Header: React.FC = () => {
+export const Header = memo(() => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [activeLink, setActiveLink] = useState('dashboard');
+  const navRef = useRef<HTMLElement | null>(null);
+
+  const closeMenu = useCallback(() => {
+    setIsMenuOpen(false);
+  }, []);
+
+  const toggleMenu = useCallback(() => {
+    setIsMenuOpen(prev => !prev);
+  }, []);
+
+  const handleLinkClick = useCallback((id: string) => {
+    setActiveLink(id);
+    closeMenu();
+  }, [closeMenu]);
+
+  useClickOutside(navRef, closeMenu);
 
   return (
-    <HeaderContainer>
+    <HeaderContainer role="banner">
       <HeaderContent>
-        <Logo>
-          <LogoImage src="/logo.svg" alt="BFA Logo" />
+        <Logo onClick={() => handleLinkClick('dashboard')} role="button" tabIndex={0}>
+          <LogoImage src="/logo.svg" alt={`${APP_CONFIG.name} Logo`} />
           <LogoText>
             <BrandName>BFA</BrandName>
             <BrandTagline>AiP Auditor</BrandTagline>
           </LogoText>
         </Logo>
 
-        <Nav $isOpen={isMenuOpen}>
-          <NavLink className="active" onClick={() => setIsMenuOpen(false)}>
-            Dashboard
-          </NavLink>
-          <NavLink onClick={() => setIsMenuOpen(false)}>
-            Audyty
-          </NavLink>
-          <NavLink onClick={() => setIsMenuOpen(false)}>
-            Raporty
-          </NavLink>
-          <NavLink onClick={() => setIsMenuOpen(false)}>
-            Ustawienia
-          </NavLink>
-          <CTAButton onClick={() => setIsMenuOpen(false)}>
+        <Nav ref={navRef} $isOpen={isMenuOpen} role="navigation" aria-label="Main navigation">
+          {NAVIGATION_LINKS.map(link => (
+            <NavLink
+              key={link.id}
+              href={link.href}
+              $active={activeLink === link.id}
+              onClick={() => handleLinkClick(link.id)}
+              aria-current={activeLink === link.id ? 'page' : undefined}
+            >
+              {link.label}
+            </NavLink>
+          ))}
+          <CTAButton onClick={closeMenu} aria-label="Utwórz nowy audyt">
             Nowy Audyt
           </CTAButton>
         </Nav>
 
-        <MenuButton onClick={() => setIsMenuOpen(!isMenuOpen)}>
-          {isMenuOpen ? (
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          ) : (
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          )}
+        <MenuButton 
+          onClick={toggleMenu}
+          aria-label={isMenuOpen ? 'Zamknij menu' : 'Otwórz menu'}
+          aria-expanded={isMenuOpen}
+          aria-controls="main-navigation"
+        >
+          <Icon name={isMenuOpen ? 'close' : 'menu'} />
         </MenuButton>
       </HeaderContent>
     </HeaderContainer>
   );
-};
+});
+
+Header.displayName = 'Header';

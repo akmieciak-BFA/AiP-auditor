@@ -90,9 +90,9 @@ export const theme = {
     }
   },
   transitions: {
-    fast: '150ms ease-in-out',
-    base: '300ms ease-in-out',
-    slow: '500ms ease-in-out'
+    fast: '150ms cubic-bezier(0.4, 0, 0.2, 1)',
+    base: '300ms cubic-bezier(0.4, 0, 0.2, 1)',
+    slow: '500ms cubic-bezier(0.4, 0, 0.2, 1)'
   },
   breakpoints: {
     sm: '640px',
@@ -100,7 +100,21 @@ export const theme = {
     lg: '1024px',
     xl: '1280px',
     '2xl': '1536px'
+  },
+  zIndex: {
+    dropdown: 1000,
+    sticky: 1020,
+    fixed: 1030,
+    modalBackdrop: 1040,
+    modal: 1050,
+    popover: 1060,
+    tooltip: 1070
   }
 } as const;
 
 export type Theme = typeof theme;
+
+// Type guard for theme colors
+export type ThemeColor = keyof typeof theme.colors.primary | 
+                         keyof typeof theme.colors.semantic | 
+                         keyof typeof theme.colors.neutral;

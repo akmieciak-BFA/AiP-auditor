@@ -1,16 +1,17 @@
+import { memo } from 'react';
 import styled from 'styled-components';
 import { theme } from '../styles/theme';
+import { media, containerStyles } from '../utils/mediaQueries';
+import { MOCK_STATS, MOCK_AUDITS, MOCK_ACTIVITIES } from '../constants';
+import { StatusBadge } from './common/StatusBadge';
+import { getColorFromKey, formatPercentageChange } from '../utils/helpers';
+import type { Audit, Activity } from '../types';
 
 const DashboardContainer = styled.div`
   flex: 1;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: ${theme.spacing['2xl']} ${theme.spacing.xl};
-  width: 100%;
-
-  @media (max-width: ${theme.breakpoints.md}) {
-    padding: ${theme.spacing.xl} ${theme.spacing.md};
-  }
+  ${containerStyles}
+  padding-top: ${theme.spacing['2xl']};
+  padding-bottom: ${theme.spacing['2xl']};
 `;
 
 const PageTitle = styled.h2`
@@ -20,7 +21,7 @@ const PageTitle = styled.h2`
   margin-bottom: ${theme.spacing.sm};
   animation: fadeIn 0.5s ease-in-out;
 
-  @media (max-width: ${theme.breakpoints.sm}) {
+  ${media.sm} {
     font-size: ${theme.typography.fontSize['3xl']};
   }
 `;
@@ -39,14 +40,14 @@ const StatsGrid = styled.div`
   margin-bottom: ${theme.spacing['2xl']};
 `;
 
-const StatCard = styled.div<{ $color?: string }>`
+const StatCard = styled.article<{ $color: string }>`
   background: white;
   border-radius: ${theme.borderRadius.xl};
   padding: ${theme.spacing.xl};
   box-shadow: ${theme.shadows.md};
   transition: ${theme.transitions.base};
   animation: fadeIn 0.5s ease-in-out;
-  border-left: 4px solid ${props => props.$color || theme.colors.primary.teal};
+  border-left: 4px solid ${props => props.$color};
 
   &:hover {
     transform: translateY(-4px);
@@ -70,7 +71,7 @@ const StatValue = styled.div`
   margin-bottom: ${theme.spacing.xs};
 `;
 
-const StatChange = styled.div<{ $positive?: boolean }>`
+const StatChange = styled.div<{ $positive: boolean }>`
   font-size: ${theme.typography.fontSize.sm};
   color: ${props => props.$positive ? theme.colors.semantic.success : theme.colors.semantic.error};
   font-weight: ${theme.typography.fontWeight.medium};
@@ -85,12 +86,12 @@ const ContentGrid = styled.div`
   gap: ${theme.spacing.xl};
   margin-bottom: ${theme.spacing['2xl']};
 
-  @media (max-width: ${theme.breakpoints.lg}) {
+  ${media.lg} {
     grid-template-columns: 1fr;
   }
 `;
 
-const Card = styled.div`
+const Card = styled.section`
   background: white;
   border-radius: ${theme.borderRadius.xl};
   padding: ${theme.spacing.xl};
@@ -120,14 +121,20 @@ const CardAction = styled.button`
   font-weight: ${theme.typography.fontWeight.medium};
   cursor: pointer;
   font-size: ${theme.typography.fontSize.sm};
+  transition: ${theme.transitions.fast};
   
   &:hover {
     color: ${theme.colors.primary.tealDark};
     text-decoration: underline;
   }
+
+  &:focus-visible {
+    outline: 2px solid ${theme.colors.primary.teal};
+    outline-offset: 2px;
+  }
 `;
 
-const AuditItem = styled.div`
+const AuditItem = styled.article`
   padding: ${theme.spacing.md};
   border-radius: ${theme.borderRadius.lg};
   margin-bottom: ${theme.spacing.md};
@@ -143,12 +150,18 @@ const AuditItem = styled.div`
   &:last-child {
     margin-bottom: 0;
   }
+
+  &:focus-within {
+    outline: 2px solid ${theme.colors.primary.teal};
+    outline-offset: 2px;
+  }
 `;
 
-const AuditTitle = styled.div`
+const AuditTitle = styled.h4`
   font-weight: ${theme.typography.fontWeight.semibold};
   color: ${theme.colors.neutral.gray900};
   margin-bottom: ${theme.spacing.xs};
+  font-size: ${theme.typography.fontSize.base};
 `;
 
 const AuditMeta = styled.div`
@@ -156,31 +169,10 @@ const AuditMeta = styled.div`
   gap: ${theme.spacing.md};
   font-size: ${theme.typography.fontSize.sm};
   color: ${theme.colors.neutral.gray600};
+  align-items: center;
 `;
 
-const StatusBadge = styled.span<{ $status: 'completed' | 'pending' | 'in-progress' }>`
-  display: inline-block;
-  padding: ${theme.spacing.xs} ${theme.spacing.sm};
-  border-radius: ${theme.borderRadius.full};
-  font-size: ${theme.typography.fontSize.xs};
-  font-weight: ${theme.typography.fontWeight.semibold};
-  text-transform: uppercase;
-  background: ${props => {
-    switch (props.$status) {
-      case 'completed':
-        return theme.colors.semantic.success;
-      case 'in-progress':
-        return theme.colors.semantic.warning;
-      case 'pending':
-        return theme.colors.neutral.gray400;
-      default:
-        return theme.colors.neutral.gray400;
-    }
-  }};
-  color: white;
-`;
-
-const ActivityItem = styled.div`
+const ActivityItem = styled.article`
   padding: ${theme.spacing.md} 0;
   border-bottom: 1px solid ${theme.colors.neutral.gray100};
 
@@ -193,149 +185,95 @@ const ActivityText = styled.div`
   font-size: ${theme.typography.fontSize.sm};
   color: ${theme.colors.neutral.gray700};
   margin-bottom: ${theme.spacing.xs};
+
+  strong {
+    font-weight: ${theme.typography.fontWeight.semibold};
+    color: ${theme.colors.neutral.gray900};
+  }
 `;
 
-const ActivityTime = styled.div`
+const ActivityTime = styled.time`
   font-size: ${theme.typography.fontSize.xs};
   color: ${theme.colors.neutral.gray500};
 `;
 
-export const Dashboard: React.FC = () => {
+// Memoized sub-components for better performance
+const AuditListItem = memo<{ audit: Audit }>(({ audit }) => (
+  <AuditItem tabIndex={0} role="button" aria-label={`Otwórz audyt: ${audit.title}`}>
+    <AuditTitle>{audit.title}</AuditTitle>
+    <AuditMeta>
+      <StatusBadge status={audit.status} />
+      <span aria-hidden="true">•</span>
+      <time dateTime={audit.date}>{audit.date}</time>
+    </AuditMeta>
+  </AuditItem>
+));
+AuditListItem.displayName = 'AuditListItem';
+
+const ActivityListItem = memo<{ activity: Activity }>(({ activity }) => (
+  <ActivityItem>
+    <ActivityText>
+      <strong>{activity.user}</strong> {activity.action}
+    </ActivityText>
+    <ActivityTime>{activity.time}</ActivityTime>
+  </ActivityItem>
+));
+ActivityListItem.displayName = 'ActivityListItem';
+
+export const Dashboard = memo(() => {
   return (
-    <DashboardContainer>
+    <DashboardContainer role="main">
       <PageTitle>Dashboard</PageTitle>
       <PageSubtitle>
         Przegląd wszystkich audytów AiP i kluczowych metryk
       </PageSubtitle>
 
-      <StatsGrid>
-        <StatCard $color={theme.colors.primary.teal}>
-          <StatLabel>Wszystkie Audyty</StatLabel>
-          <StatValue>127</StatValue>
-          <StatChange $positive={true}>
-            ↑ 12% vs. ostatni miesiąc
-          </StatChange>
-        </StatCard>
-
-        <StatCard $color={theme.colors.semantic.success}>
-          <StatLabel>Ukończone</StatLabel>
-          <StatValue>98</StatValue>
-          <StatChange $positive={true}>
-            ↑ 8% vs. ostatni miesiąc
-          </StatChange>
-        </StatCard>
-
-        <StatCard $color={theme.colors.semantic.warning}>
-          <StatLabel>W Trakcie</StatLabel>
-          <StatValue>23</StatValue>
-          <StatChange $positive={false}>
-            ↓ 3% vs. ostatni miesiąc
-          </StatChange>
-        </StatCard>
-
-        <StatCard $color={theme.colors.primary.orange}>
-          <StatLabel>Oczekujące</StatLabel>
-          <StatValue>6</StatValue>
-          <StatChange $positive={true}>
-            ↑ 2% vs. ostatni miesiąc
-          </StatChange>
-        </StatCard>
+      <StatsGrid role="region" aria-label="Statystyki audytów">
+        {MOCK_STATS.map((stat) => (
+          <StatCard 
+            key={stat.id} 
+            $color={getColorFromKey(stat.color, theme)}
+            aria-label={`${stat.label}: ${stat.value}`}
+          >
+            <StatLabel>{stat.label}</StatLabel>
+            <StatValue>{stat.value}</StatValue>
+            <StatChange $positive={stat.positive} aria-label={formatPercentageChange(stat.change)}>
+              {formatPercentageChange(stat.change)}
+            </StatChange>
+          </StatCard>
+        ))}
       </StatsGrid>
 
       <ContentGrid>
-        <Card>
+        <Card aria-labelledby="recent-audits-title">
           <CardHeader>
-            <CardTitle>Ostatnie Audyty</CardTitle>
-            <CardAction>Zobacz wszystkie →</CardAction>
+            <CardTitle id="recent-audits-title">Ostatnie Audyty</CardTitle>
+            <CardAction aria-label="Zobacz wszystkie audyty">
+              Zobacz wszystkie →
+            </CardAction>
           </CardHeader>
 
-          <AuditItem>
-            <AuditTitle>Audyt bezpieczeństwa systemu bankowego</AuditTitle>
-            <AuditMeta>
-              <StatusBadge $status="completed">Ukończony</StatusBadge>
-              <span>•</span>
-              <span>2025-10-24</span>
-            </AuditMeta>
-          </AuditItem>
-
-          <AuditItem>
-            <AuditTitle>Przegląd zgodności RODO</AuditTitle>
-            <AuditMeta>
-              <StatusBadge $status="in-progress">W trakcie</StatusBadge>
-              <span>•</span>
-              <span>2025-10-22</span>
-            </AuditMeta>
-          </AuditItem>
-
-          <AuditItem>
-            <AuditTitle>Audyt infrastruktury IT</AuditTitle>
-            <AuditMeta>
-              <StatusBadge $status="in-progress">W trakcie</StatusBadge>
-              <span>•</span>
-              <span>2025-10-20</span>
-            </AuditMeta>
-          </AuditItem>
-
-          <AuditItem>
-            <AuditTitle>Analiza ryzyka operacyjnego</AuditTitle>
-            <AuditMeta>
-              <StatusBadge $status="pending">Oczekujący</StatusBadge>
-              <span>•</span>
-              <span>2025-10-18</span>
-            </AuditMeta>
-          </AuditItem>
-
-          <AuditItem>
-            <AuditTitle>Kontrola wewnętrzna procesów</AuditTitle>
-            <AuditMeta>
-              <StatusBadge $status="completed">Ukończony</StatusBadge>
-              <span>•</span>
-              <span>2025-10-15</span>
-            </AuditMeta>
-          </AuditItem>
+          <div role="list">
+            {MOCK_AUDITS.map((audit) => (
+              <AuditListItem key={audit.id} audit={audit} />
+            ))}
+          </div>
         </Card>
 
-        <Card>
+        <Card aria-labelledby="recent-activity-title">
           <CardHeader>
-            <CardTitle>Ostatnia Aktywność</CardTitle>
+            <CardTitle id="recent-activity-title">Ostatnia Aktywność</CardTitle>
           </CardHeader>
 
-          <ActivityItem>
-            <ActivityText>
-              <strong>Jan Kowalski</strong> ukończył audyt bezpieczeństwa
-            </ActivityText>
-            <ActivityTime>2 godziny temu</ActivityTime>
-          </ActivityItem>
-
-          <ActivityItem>
-            <ActivityText>
-              <strong>Anna Nowak</strong> dodała nowy raport
-            </ActivityText>
-            <ActivityTime>5 godzin temu</ActivityTime>
-          </ActivityItem>
-
-          <ActivityItem>
-            <ActivityText>
-              <strong>Piotr Wiśniewski</strong> rozpoczął nowy audyt
-            </ActivityText>
-            <ActivityTime>1 dzień temu</ActivityTime>
-          </ActivityItem>
-
-          <ActivityItem>
-            <ActivityText>
-              <strong>Maria Lewandowska</strong> zaktualizowała ustawienia
-            </ActivityText>
-            <ActivityTime>2 dni temu</ActivityTime>
-          </ActivityItem>
-
-          <ActivityItem>
-            <ActivityText>
-              <strong>System</strong> wygenerował automatyczny raport miesięczny
-            </ActivityText>
-            <ActivityTime>3 dni temu</ActivityTime>
-          </ActivityItem>
+          <div role="list">
+            {MOCK_ACTIVITIES.map((activity) => (
+              <ActivityListItem key={activity.id} activity={activity} />
+            ))}
+          </div>
         </Card>
       </ContentGrid>
     </DashboardContainer>
   );
-};
+});
+
+Dashboard.displayName = 'Dashboard';
