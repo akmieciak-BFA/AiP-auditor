@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from ..database import get_db
-from ..models.user import User
+# User import removed (no auth)
 from ..models.project import Project
 from ..models.step1 import Step1Data
 from ..models.step2 import Step2Process
@@ -11,7 +11,7 @@ from ..models.step4 import Step4Output
 from ..schemas.step4 import Step4GenerateRequest, Step4Output as Step4OutputSchema
 from ..services.gamma_service import GammaService
 from ..services.analysis_service import AnalysisService
-from ..utils.auth import get_current_user
+# get_current_user removed (no auth)
 
 router = APIRouter(prefix="/api/projects/{project_id}/step4", tags=["step4"])
 

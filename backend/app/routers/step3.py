@@ -2,13 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 import logging
 from ..database import get_db
-from ..models.user import User
+# User import removed (no auth)
 from ..models.project import Project
 from ..models.step2 import Step2Process
 from ..models.step3 import Step3Data
 from ..schemas.step3 import Step3DataInput, Step3AnalysisResult
 from ..services.claude_service import ClaudeService
-from ..utils.auth import get_current_user
+# get_current_user removed (no auth)
 from ..middleware.rate_limit import ai_analysis_rate_limit
 
 logger = logging.getLogger(__name__)
