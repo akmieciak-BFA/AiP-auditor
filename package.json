@@ -1,0 +1,42 @@
+{
+  "name": "bfa-aip-auditor",
+  "version": "1.0.0",
+  "description": "BFA AiP Auditor - Nowoczesne narzędzie do zarządzania audytami",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "tsc --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/akmieciak-BFA/AiP-auditor.git"
+  },
+  "keywords": [
+    "audit",
+    "aip",
+    "bfa",
+    "risk-management",
+    "compliance"
+  ],
+  "author": "BFA",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/akmieciak-BFA/AiP-auditor/issues"
+  },
+  "homepage": "https://github.com/akmieciak-BFA/AiP-auditor#readme",
+  "devDependencies": {
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^5.1.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.12"
+  },
+  "dependencies": {
+    "@types/styled-components": "^5.1.35",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "styled-components": "^6.1.19"
+  }
+}
