@@ -146,7 +146,7 @@ VITE_API_URL=http://localhost:8000
 
 ### 3. Uzyskanie kluczy API
 
-**Claude API Key:**
+**Claude API Key:** ✅ **WYMAGANE dla Extended Thinking**
 1. Zarejestruj się na https://console.anthropic.com
 2. Przejdź do Settings → API Keys
 3. Utwórz nowy klucz API
@@ -158,11 +158,30 @@ VITE_API_URL=http://localhost:8000
 3. Wygeneruj API key (jeśli dostępne)
 4. Skopiuj klucz do `.env`
 
-> ⚠️ **Uwaga**: Bez kluczy API aplikacja nie będzie mogła wykonywać analiz i generować prezentacji.
+> ⚠️ **Uwaga**: Klucz Claude API jest niezbędny dla:
+> - Generowania dynamicznych formularzy
+> - Extended Thinking analysis
+> - Wszystkich analiz AI
 
 ## 🏃 Uruchomienie
 
-### Metoda 1: Docker (zalecane)
+### Metoda 1: Aplikacja Desktopowa (Electron) ⭐ NOWE!
+
+```bash
+# Uruchom backend
+docker-compose up backend
+
+# W nowym terminalu, uruchom aplikację desktopową
+cd frontend
+npm install
+npm run dev:electron
+```
+
+Aplikacja otworzy się jako natywne okno systemowe!
+
+📖 Więcej informacji: [DESKTOP_APP.md](DESKTOP_APP.md)
+
+### Metoda 2: Docker (wersja webowa)
 
 ```bash
 # Uruchom aplikację
@@ -179,7 +198,7 @@ Zatrzymanie:
 docker-compose down
 ```
 
-### Metoda 2: Manualne uruchomienie
+### Metoda 3: Manualne uruchomienie
 
 **Backend:**
 ```bash
