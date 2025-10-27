@@ -78,7 +78,7 @@ def update_process(
     # Validate process data
     from ..utils.validators import validate_process_steps, validate_costs
     
-    process_dict = data.dict()
+    process_dict = data.model_dump()
     
     # Validate steps
     if 'as_is' in process_dict and 'steps' in process_dict['as_is']:

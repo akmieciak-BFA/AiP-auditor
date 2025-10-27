@@ -45,7 +45,7 @@ def analyze_step1(
         return Step1AnalysisResult(**step1_data.analysis_results)
     
     # Sanitize data
-    clean_data = sanitize_dict(data.dict())
+    clean_data = sanitize_dict(data.model_dump())
     
     # Call Claude API with extended thinking
     claude_service = ClaudeService()
