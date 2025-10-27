@@ -9,6 +9,7 @@ from ..schemas.step2 import Step2ProcessData, Step2AnalysisResult
 from ..services.claude_service import ClaudeService
 from ..middleware.rate_limit import ai_analysis_rate_limit
 from ..middleware.security import sanitize_dict, validate_input
+from ..utils.output_validator import OutputQualityValidator
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/projects/{project_id}/step2", tags=["step2"])
@@ -137,6 +138,33 @@ def analyze_process(
     claude_service = ClaudeService()
     try:
         analysis_results = claude_service.analyze_step2(process.process_data)
+        
+        # Validate output quality
+        validator = OutputQualityValidator()
+        is_valid, warnings, word_counts = validator.validate_step2_output(analysis_results)
+        
+        # Log validation results
+        validation_report = validator.format_validation_report(
+            f"Step 2 - {process.process_name}", 
+            is_valid, 
+            warnings, 
+            word_counts
+        )
+        logger.info(validation_report)
+        
+        # Add quality metrics to results
+        analysis_results["_quality_metrics"] = {
+            "is_valid": is_valid,
+            "word_counts": word_counts,
+            "warnings": warnings
+        }
+        
+        if not is_valid:
+            logger.warning(
+                f"Step 2 output quality below threshold for process {process.process_name}. "
+                f"Warnings: {warnings}"
+            )
+            
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

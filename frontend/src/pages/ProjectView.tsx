@@ -7,6 +7,7 @@ import Step1Form from '../components/Step1Form';
 import Step2Form from '../components/Step2Form';
 import Step3Form from '../components/Step3Form';
 import Step4Form from '../components/Step4Form';
+import { DownloadButton } from '../components/DownloadButton';
 
 export default function ProjectView() {
   const { id } = useParams<{ id: string }>();
@@ -82,8 +83,25 @@ export default function ProjectView() {
       </button>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">{project.name}</h1>
-        <p className="text-gray-400">Klient: {project.client_name}</p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">{project.name}</h1>
+            <p className="text-gray-400">Klient: {project.client_name}</p>
+          </div>
+          
+          {/* Download Button - show if project has any data beyond step1 */}
+          {(project.status !== 'step1' || currentStep !== 'step1') && (
+            <div className="flex gap-2">
+              <DownloadButton
+                projectId={project.id}
+                projectName={project.name}
+                clientName={project.client_name}
+                variant="outline"
+                size="md"
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Progress Steps */}
