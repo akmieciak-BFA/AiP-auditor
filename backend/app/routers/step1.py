@@ -11,6 +11,7 @@ from ..schemas.step1 import InitialAssessmentData, Step1AnalysisResult
 from ..services.claude_service import ClaudeService
 from ..middleware.rate_limit import ai_analysis_rate_limit
 from ..middleware.security import sanitize_dict
+from ..utils.output_validator import OutputQualityValidator
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/projects/{project_id}/step1", tags=["step1"])
@@ -41,6 +42,26 @@ def analyze_step1(
     try:
         logger.info(f"Analyzing Step 1 for project {project_id} with extended thinking")
         analysis_results = claude_service.analyze_step1_comprehensive(clean_data)
+        
+        # Validate output quality
+        validator = OutputQualityValidator()
+        is_valid, warnings, word_counts = validator.validate_step1_output(analysis_results)
+        
+        # Log validation results
+        validation_report = validator.format_validation_report("Step 1", is_valid, warnings, word_counts)
+        logger.info(validation_report)
+        
+        # Add quality metrics to results
+        analysis_results["_quality_metrics"] = {
+            "is_valid": is_valid,
+            "word_counts": word_counts,
+            "warnings": warnings
+        }
+        
+        if not is_valid:
+            logger.warning(f"Step 1 output quality below threshold. Warnings: {warnings}")
+            # Don't fail the request, but log the warning
+            
     except Exception as e:
         logger.error(f"Analysis failed: {e}")
         raise HTTPException(

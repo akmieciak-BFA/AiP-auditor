@@ -9,6 +9,7 @@ from .cache_service import (
     cache_step1_analysis,
     save_step1_analysis
 )
+from ..utils.output_validator import OutputQualityValidator
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
@@ -278,9 +279,19 @@ Zasady pracy:
 - Używaj specjalistycznego języka biznesowego i technicznego
 - Wszystkie analizy muszą być quantified (liczby, procenty, PLN)
 - Bazuj na metodologiach: Lean Six Sigma, BPMN 2.0, Time-Driven ABC, ADKAR
-- Praca opisowa, nie punktowa
+- Praca opisowa, nie punktowa - bogaty, szczegółowy tekst
 - Język polski, angielski tylko dla nazw własnych
 - Bez emoji
+
+WYMAGANIA DOTYCZĄCE DŁUGOŚCI OUTPUTU (zgodnie ze standardem Turris 126 slajdów):
+- Executive Summary (interpretation): 150-200 słów
+- Metodologia i Analiza Lex/Sigma (legal_analysis): 200-300 słów łącznie
+- Opis każdego TOP procesu (rationale): 80-120 słów per proces
+- Matryca współzależności i rekomendacje (recommendations): 150-250 słów
+- CAŁKOWITA MINIMALNA DŁUGOŚĆ: 900-1,500 słów
+
+KRYTYCZNE: Każda sekcja tekstowa musi być BOGATA w szczegóły, liczby, kontekst biznesowy.
+Nie używaj skrótów ani języka punktowego. Pisz w pełnych zdaniach opisowych.
 
 Format odpowiedzi: JSON zgodny ze schematem."""
         
@@ -295,13 +306,46 @@ ODPOWIEDZI Z KWESTIONARIUSZA:
 LISTA PROCESÓW BIZNESOWYCH:
 {json.dumps(data.get('processes_list', []), indent=2, ensure_ascii=False)}
 
-Wykonaj:
-1. Oceń dojrzałość cyfrową według 6 wymiarów (0-100 dla każdego)
-2. Dla każdego procesu oblicz scoring według potencjału automatyzacji (0-100)
-3. Kategoryzuj procesy na Tier 1-4
-4. Wybierz TOP 5 procesów do dalszej analizy (uzasadnij wybór)
-5. Przeanalizuj regulacje prawne wpływające na automatyzację
-6. Stwórz matrycę zależności między systemami IT
+Wykonaj szczegółową analizę:
+
+1. EXECUTIVE SUMMARY (interpretation) - 150-200 słów:
+   - Profil organizacji (nazwa, branża, wielkość, obrót)
+   - Główne wyzwania operacyjne (3-5 punktów)
+   - Cel audytu
+   - Kluczowe ustalenia (high-level)
+
+2. METODOLOGIA I ANALIZA LEX/SIGMA (legal_analysis) - 200-300 słów łącznie:
+   - Opis 3-krokowego podejścia BFA
+   - Narzędzia i frameworki (Lean Six Sigma, MUDA, scoring)
+   - Źródła danych
+   - Identyfikacja typów marnotrawstwa (MUDA) na poziomie organizacji
+   - Ogólna ocena dojrzałości procesowej
+   - Analiza regulacji prawnych
+
+3. TOP PROCESY (processes_scoring) - 80-120 słów per proces:
+   Dla każdego procesu w rationale:
+   - Pełny opis procesu (30-50 słów)
+   - Kluczowe metryki (czas, koszty, błędy, częstotliwość)
+   - Uzasadnienie wyboru (30-40 słów)
+   - Potencjał oszczędności (konkretne liczby w PLN/rok)
+
+4. MATRYCA WSPÓŁZALEŻNOŚCI I REKOMENDACJE (recommendations) - 150-250 słów:
+   - Opis synergii między procesami
+   - Identyfikacja kluczowych punktów integracji systemowej
+   - Rekomendacje priorytetyzacji (które procesy wdrożyć najpierw i dlaczego)
+   - Plan etapowania wdrożeń
+
+5. DOJRZAŁOŚĆ CYFROWA:
+   - Oceń dojrzałość cyfrową według 6 wymiarów (0-100 dla każdego)
+   - Dla każdego procesu oblicz scoring według potencjału automatyzacji (0-100)
+   - Kategoryzuj procesy na Tier 1-4
+   - Wybierz TOP 5 procesów do dalszej analizy
+
+6. SYSTEM DEPENDENCIES:
+   - Stwórz matrycę zależności między systemami IT
+
+PAMIĘTAJ: Pisz w pełnych, opisowych zdaniach. Unikaj stylu punktowego.
+Każda sekcja powinna być BOGATA w szczegóły, kontekst biznesowy i konkretne liczby.
 
 Zwróć wynik w formacie JSON zgodnym z poniższym schematem:
 {{
@@ -386,6 +430,51 @@ Zasady pracy:
 - Bazuj na metodologiach: Lean Six Sigma, BPMN 2.0, Time-Driven ABC
 - Język polski, angielski tylko dla nazw własnych
 - Bez emoji
+- BOGATY, szczegółowy tekst - nie używaj skrótów
+
+WYMAGANIA DOTYCZĄCE DŁUGOŚCI OUTPUTU (zgodnie ze standardem Turris 126 slajdów):
+PER PROCES - MINIMUM 1,050 SŁÓW, OPTYMALNIE 1,200-1,500 SŁÓW:
+
+1. OPIS PROCESU (bpmn_description początek) - 150-200 słów:
+   - Pełna nazwa procesu
+   - Cel biznesowy
+   - Zakres (co obejmuje, co nie obejmuje)
+   - Kluczowi stakeholderzy (role, odpowiedzialności)
+   - Input i Output procesu
+
+2. MAPOWANIE PROCESU AS-IS (bpmn_description ciąg dalszy) - 200-300 słów:
+   - Szczegółowy opis kroków procesu (6-12 kroków)
+   - Dla każdego kroku: Kto, Co, Jak, Ile czasu
+   - Identyfikacja punktów decyzyjnych
+   - Identyfikacja systemów/narzędzi używanych
+   - Czas całkowity procesu i częstotliwość
+
+3. ANALIZA WĄSKICH GARDEŁ (bottlenecks description) - 150-200 słów ŁĄCZNIE:
+   - Identyfikacja 3-5 głównych wąskich gardeł
+   - Dla każdego: Opis (30-50 słów), Wpływ, Czas oczekiwania/opóźnienia
+   - Analiza wykorzystania zasobów
+
+4. ANALIZA MUDA (muda_analysis descriptions) - 250-350 słów ŁĄCZNIE:
+   - Identyfikacja 8 typów marnotrawstwa
+   - Dla każdego typu: Opis (30-40 słów), Przykłady, Szacunkowy wpływ (% czasu/kosztów, PLN/rok)
+
+5. ANALIZA KOSZTÓW (w automation_potential rationale) - 200-300 słów:
+   - Koszty bezpośrednie (FTE, materiały, systemy)
+   - Koszty pośrednie (błędy, opóźnienia, opportunity cost)
+   - Kalkulacja rocznych kosztów procesu
+   - Breakdown kosztów z konkretnymi liczbami
+
+6. POTENCJAŁ AUTOMATYZACJI (automation_potential rationale) - 100-150 słów:
+   - % procesu możliwy do automatyzacji
+   - Które kroki można zautomatyzować
+   - Uzasadnienie z obliczeniami ROI
+
+KRYTYCZNE: bpmn_description powinien zawierać punkty 1-2 (350-500 słów)
+KRYTYCZNE: bottlenecks descriptions łącznie 150-200 słów
+KRYTYCZNE: muda_analysis descriptions łącznie 250-350 słów
+KRYTYCZNE: automation_potential rationale powinien zawierać punkt 5-6 (300-450 słów)
+
+Pisz w pełnych, opisowych zdaniach. Każda sekcja BOGATA w szczegóły i konkretne liczby.
 
 Format odpowiedzi: JSON zgodny ze schematem."""
         
@@ -394,12 +483,76 @@ Format odpowiedzi: JSON zgodny ze schematem."""
 DANE PROCESU:
 {json.dumps(process_data, indent=2, ensure_ascii=False)}
 
-Wykonaj:
-1. Zidentyfikuj 8 typów marnotrawstwa (MUDA) z kosztami dla każdego
-2. Oblicz koszty procesu metodą Time-Driven ABC
-3. Zidentyfikuj TOP 5 wąskich gardeł z wpływem na efektywność
-4. Oceń potencjał automatyzacji (% procesu możliwy do automatyzacji)
-5. Stwórz tekstowy opis diagramu BPMN 2.0 AS-IS (dla późniejszej wizualizacji)
+WYKONAJ SZCZEGÓŁOWĄ ANALIZĘ (MINIMUM 1,050 SŁÓW):
+
+1. BPMN_DESCRIPTION (350-500 słów) - MUSI zawierać:
+   
+   A. OPIS PROCESU (150-200 słów):
+      - Pełna nazwa procesu i cel biznesowy (2-3 zdania)
+      - Zakres: co obejmuje, co NIE obejmuje (2-3 zdania)
+      - Kluczowi stakeholderzy z rolami i odpowiedzialnościami (3-5 zdań)
+      - Input procesu (co wchodzi) i Output (co wychodzi) (2 zdania)
+   
+   B. MAPOWANIE AS-IS (200-300 słów):
+      - Szczegółowy opis 6-12 kroków procesu
+      - Dla KAŻDEGO kroku: Kto wykonuje, Co robi, Jak (narzędzia/systemy), Ile czasu zajmuje
+      - Punkty decyzyjne (if/then) w procesie
+      - Systemy IT wykorzystywane na każdym etapie
+      - Czas całkowity procesu i częstotliwość wykonywania
+      - Format: "Krok 1: [Nazwa]. Kto: [rola]. Co: [opis]. Jak: [metoda]. Czas: [minuty/godziny]. Systemy: [lista]. Problemy: [jeśli są]."
+
+2. BOTTLENECKS (3-5 wąskich gardeł, description per każdy 30-50 słów, ŁĄCZNIE 150-200 słów):
+   Dla każdego wąskiego gardła w description:
+   - Opis problemu (co dokładnie spowalnia proces)
+   - Wpływ (Niski/Średni/Wysoki/Krytyczny) z uzasadnieniem
+   - Czas opóźnienia w minutach/godzinach
+   - Wykorzystanie zasobów (% capacity utilization)
+   - Koszt roczny w PLN
+
+3. MUDA_ANALYSIS (8 typów, description per każdy 30-40 słów, ŁĄCZNIE 250-350 słów):
+   Dla każdego z 8 typów marnotrawstwa:
+   - Opis: Co konkretnie stanowi marnotrawstwo w tym procesie
+   - Przykłady: 1-2 konkretne przykłady z procesu
+   - Wpływ: Szacunkowy % czasu/kosztów procesu
+   - cost_per_year: Konkretna kwota w PLN/rok
+   
+   8 typów MUDA (wszystkie wymagane):
+   - Nadprodukcja (overproduction)
+   - Transport (transportation)
+   - Zbędny ruch (motion)
+   - Oczekiwanie (waiting)
+   - Nadmierne przetwarzanie (extra_processing)
+   - Zapasy (inventory)
+   - Potencjał ludzki (non_utilized_talent)
+   - Defekty (defects)
+
+4. PROCESS_COSTS:
+   Oblicz metodą Time-Driven ABC:
+   - labor_costs: FTE × godziny × stawka PLN/h
+   - operational_costs: materiały, systemy, infrastruktura
+   - error_costs: błędy × koszt korekty
+   - delay_costs: opóźnienia × opportunity cost
+   - total_cost: suma powyższych
+
+5. AUTOMATION_POTENTIAL RATIONALE (300-450 słów) - MUSI zawierać:
+   
+   A. ANALIZA KOSZTÓW SZCZEGÓŁOWA (200-300 słów):
+      - Koszty bezpośrednie: FTE (rozbicie per rola), materiały (per typ), systemy (licencje)
+      - Koszty pośrednie: błędy (liczba × koszt), opóźnienia (czas × opportunity cost)
+      - Kalkulacja roczna z tabelą: [typ kosztu] → [obliczenie] → [kwota PLN/rok]
+      - Przykład: "Koszty pracy: Informatycy 15-20 min/akcja × 52 akcje × 150 PLN/h = 1,950-2,600 PLN"
+   
+   B. POTENCJAŁ AUTOMATYZACJI (100-150 słów):
+      - percentage: % procesu możliwy do automatyzacji (uzasadnij obliczenie)
+      - automatable_steps: lista kroków z kroku 1B które można zautomatyzować
+      - Szacunkowe oszczędności: Redukcja kosztów w PLN/rok i %
+      - ROI (high-level): Czy automatyzacja ma sens ekonomiczny
+
+PAMIĘTAJ: 
+- Pisz w pełnych zdaniach opisowych, nie w punktach
+- Każda liczba musi mieć uzasadnienie i obliczenie
+- Używaj konkretnych przykładów z danych procesu
+- MINIMUM 1,050 słów ŁĄCZNIE
 
 Zwróć wynik w formacie JSON zgodnym z poniższym schematem:
 {{
@@ -669,6 +822,50 @@ Zasady pracy:
 - Bazuj na rzeczywistych cenach vendorów
 - Język polski, angielski tylko dla nazw własnych
 - Bez emoji
+- BOGATY, szczegółowy tekst opisowy
+
+WYMAGANIA DOTYCZĄCE DŁUGOŚCI OUTPUTU (zgodnie ze standardem Turris 126 slajdów):
+PER PROCES - MINIMUM 1,100 SŁÓW, OPTYMALNIE 1,300-1,600 SŁÓW:
+
+1. WPROWADZENIE DO REKOMENDACJI (description pierwszego scenariusza początek) - 100-150 słów:
+   - Cel automatyzacji dla tego procesu
+   - Kluczowe założenia i ograniczenia
+   - Przegląd 3 scenariuszy budżetowych
+
+2. SCENARIUSZ 1: WARIANT NISKIEGO BUDŻETU (300-400 słów):
+   A. Opis rozwiązania (100-150 słów):
+      - Główne komponenty technologiczne
+      - Architektura rozwiązania (high-level)
+      - Zakres automatyzacji (co zostanie zautomatyzowane, co pozostanie manualne)
+   
+   B. Komponenty i specyfikacja (100-150 słów):
+      - Lista komponentów z kluczowymi funkcjami
+      - Specyfikacja techniczna (wersje, licencje, wymagania)
+   
+   C. Koszty CAPEX i OPEX (50-100 słów):
+      - Zestawienie kosztów początkowych (CAPEX) z rozpisaniem
+      - Zestawienie kosztów operacyjnych rocznych (OPEX) z rozpisaniem
+   
+   D. Oszczędności i ROI (50-100 słów):
+      - Szacunkowe oszczędności roczne z obliczeniami
+      - ROI, Payback Period, NPV (3 lata) z interpretacją
+
+3. SCENARIUSZ 2: WARIANT ŚREDNIEGO BUDŻETU (300-400 słów):
+   Struktura analogiczna do Scenariusza 1 (A-D)
+
+4. SCENARIUSZ 3: WARIANT WYSOKIEGO BUDŻETU (300-400 słów):
+   Struktura analogiczna do Scenariusza 1 (A-D)
+
+5. PORÓWNANIE SCENARIUSZY I REKOMENDACJA (comparison) - 100-150 słów:
+   - Tabela porównawcza 3 wariantów (kluczowe metryki)
+   - Rekomendacja dla klienta (który wariant wybrać i dlaczego)
+   - Plan etapowania (jeśli applicable)
+
+KRYTYCZNE: Każdy scenariusz description + scope + process_to_be description = 300-400 słów
+KRYTYCZNE: comparison recommendation + rationale = 100-150 słów
+KRYTYCZNE: Wszystkie liczby (CAPEX, OPEX, ROI) z konkretnymi obliczeniami
+
+Pisz w pełnych, opisowych zdaniach. Każda sekcja BOGATA w szczegóły techniczne i finansowe.
 
 Format odpowiedzi: JSON zgodny ze schematem."""
         
@@ -680,22 +877,108 @@ DANE PROCESU Z KROKU 2:
 PREFERENCJE KLIENTA:
 {json.dumps(preferences, indent=2, ensure_ascii=False)}
 
-Wykonaj:
-1. Research technologii automatyzacyjnych odpowiednich dla tego procesu
-2. Oceń TOP 5-10 vendorów (funkcjonalność, cena, referencje)
-3. Stwórz 3 scenariusze budżetowe:
-   - Scenariusz 1: Budget-Conscious (niski budżet)
-   - Scenariusz 2: Strategic Implementation (średni budżet)
-   - Scenariusz 3: Enterprise Transformation (wysoki budżet)
-4. Dla każdego scenariusza:
-   - Zaproponuj konkretne rozwiązania (vendorzy, produkty)
-   - Oblicz koszty (CAPEX i OPEX)
-   - Zaprojektuj proces TO-BE
-   - Oblicz korzyści (oszczędności)
-   - Kalkuluj ROI (3 lata), payback period, NPV
-5. Rekomenduj optymalny scenariusz
+WYKONAJ SZCZEGÓŁOWĄ ANALIZĘ (MINIMUM 1,100 SŁÓW):
 
-Zwróć wynik w formacie JSON."""
+1. TECHNOLOGY RESEARCH:
+   - Zidentyfikuj kategorie technologii odpowiednie dla tego procesu
+   - Oceń TOP 5-10 vendorów dla każdej kategorii
+   - Dla każdego vendora: functionality_score (0-10), price_tier (low/medium/high), references (lista projektów)
+
+2. STWÓRZ 3 SCENARIUSZE BUDŻETOWE:
+
+   SCENARIUSZ 1: BUDGET-CONSCIOUS / NISKI BUDŻET (300-400 słów ŁĄCZNIE):
+   
+   A. name: "Wariant Niskiego Budżetu (LB)"
+   
+   B. description (100-150 słów):
+      - Wprowadzenie: Cel automatyzacji dla tego procesu (2-3 zdania)
+      - Główne komponenty technologiczne (lista z krótkimi opisami)
+      - Architektura rozwiązania (high-level flow danych i procesów)
+      - Zakres automatyzacji: co ZOSTANIE zautomatyzowane vs co POZOSTANIE manualne
+   
+   C. scope (50-100 słów):
+      - Konkretne rozwiązania: vendorzy i produkty (nazwa + krótki opis)
+      - Specyfikacja techniczna: wersje, licencje, wymagania infrastrukturalne
+      - Komponenty: lista z kluczowymi funkcjami
+   
+   D. costs (struktura JSON z numbers):
+      - capex: {{licenses: X, infrastructure: Y, consulting: Z, training: W, change_management: V, total: SUM}}
+      - opex_year1: {{licenses: X, infrastructure: Y, support: Z, continuous_improvement: W, total: SUM}}
+      - Każdy koszt z obliczeniem: np. "licenses: 2 × 1000 EUR × 4.5 PLN = 9,000 PLN"
+   
+   E. benefits_year1 (struktura JSON z numbers):
+      - fte_savings: oszczędności FTE w PLN/rok (oblicz: godziny × stawka)
+      - operational_savings: redukcja kosztów operacyjnych
+      - error_reduction: oszczędności z redukcji błędów
+      - speed_improvement: korzyści z przyspieszenia procesu
+      - total: suma
+   
+   F. financial_analysis (struktura JSON):
+      - roi_3years: % (oblicz: (benefits_year1×3 - capex - opex_year1×3) / (capex + opex_year1×3) × 100)
+      - payback_months: miesiące (oblicz: capex / (benefits_year1/12 - opex_year1/12))
+      - npv: PLN (oblicz NPV dla 3 lat, discount rate 8%)
+      - Interpretacja: Czy wariant ma sens ekonomiczny
+   
+   G. process_to_be (150-200 słów):
+      - description: Szczegółowy opis procesu TO-BE (jak będzie wyglądał po automatyzacji)
+      - steps: Lista kroków nowego procesu (6-10 kroków)
+      - cycle_time_hours: Czas cyklu po automatyzacji
+      - fte_required: FTE potrzebne po automatyzacji
+      - bpmn_description: Tekstowy opis diagramu BPMN 2.0 TO-BE
+   
+   H. solutions:
+      - Lista konkretnych rozwiązań: [{{"vendor": "X", "product": "Y", "rationale": "uzasadnienie"}}]
+
+   SCENARIUSZ 2: STRATEGIC IMPLEMENTATION / ŚREDNI BUDŻET (300-400 słów ŁĄCZNIE):
+   Struktura A-H analogiczna do Scenariusza 1
+   Różnica: Bardziej zaawansowane technologie, większy scope automatyzacji, wyższe koszty i korzyści
+
+   SCENARIUSZ 3: ENTERPRISE TRANSFORMATION / WYSOKI BUDŻET (300-400 słów ŁĄCZNIE):
+   Struktura A-H analogiczna do Scenariusza 1
+   Różnica: Najbardziej zaawansowane technologie, pełna automatyzacja, najwyższe koszty i korzyści
+
+3. COMPARISON (100-150 słów):
+   
+   A. recommendation (50-80 słów):
+      - Który scenariusz rekomendowany dla tego klienta i dlaczego
+      - Argumenty biznesowe (ROI, payback, risk)
+      - Argumenty strategiczne (alignment ze strategią firmy)
+   
+   B. rationale (50-80 słów):
+      - Plan etapowania: Faza 1 (co, kiedy), Faza 2 (co, kiedy), Faza 3 (co, kiedy)
+      - Quick wins vs strategic impact
+      - Zarządzanie ryzykiem w zalecanym podejściu
+   
+   C. table (struktura JSON):
+      - Tabela porównawcza 3 scenariuszy
+      - Wiersze: ["Metryka", "Wariant LB", "Wariant MB", "Wariant HB"]
+      - Metryki: CAPEX, OPEX/rok, Oszczędności/rok, ROI%, Payback (miesiące), NPV 3 lata
+
+PAMIĘTAJ:
+- Pisz w pełnych zdaniach opisowych w polach tekstowych (description, scope, process_to_be.description, etc.)
+- Wszystkie koszty i korzyści z konkretnymi obliczeniami
+- Bazuj na rzeczywistych cenach vendorów (UiPath, Automation Anywhere, Power Automate, etc.)
+- MINIMUM 1,100 słów ŁĄCZNIE (3 × 350 słów scenarios + 100 słów comparison)
+
+Zwróć wynik w formacie JSON zgodnym z poniższym schematem:
+{{
+  "technology_research": {{
+    "categories": ["RPA", "BPM", ...],
+    "vendors": [
+      {{"name": "UiPath", "category": "RPA", "functionality_score": 9, "price_tier": "high", "references": ["ref1"], "recommendation": "tekst"}}
+    ]
+  }},
+  "scenarios": [
+    {{scenariusz 1 - struktura opisana powyżej}},
+    {{scenariusz 2}},
+    {{scenariusz 3}}
+  ],
+  "comparison": {{
+    "table": [[...]],
+    "recommendation": "tekst 50-80 słów",
+    "rationale": "tekst 50-80 słów"
+  }}
+}}"""
         
         try:
             response = self.client.messages.create(

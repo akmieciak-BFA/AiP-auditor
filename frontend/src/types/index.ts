@@ -38,6 +38,12 @@ export interface ProcessScoring {
   rationale: string;
 }
 
+export interface QualityMetrics {
+  is_valid: boolean;
+  word_counts: Record<string, number>;
+  warnings: string[];
+}
+
 export interface Step1Result {
   digital_maturity: DigitalMaturity;
   processes_scoring: ProcessScoring[];
@@ -56,6 +62,7 @@ export interface Step1Result {
     strategic_alignment: number;
     risk_level: number;
   };
+  _quality_metrics?: QualityMetrics;
 }
 
 // Step 2 types
@@ -136,6 +143,7 @@ export interface Step2Result {
     rationale: string;
   };
   bpmn_description: string;
+  _quality_metrics?: QualityMetrics;
 }
 
 // Step 3 types
