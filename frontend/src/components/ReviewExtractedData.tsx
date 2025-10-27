@@ -39,13 +39,20 @@ export default function ReviewExtractedData({
 
   const fetchExtractedData = async () => {
     try {
+      // Fetch latest analysis from new endpoint
       const response = await fetch(
-        `http://localhost:8000/api/projects/${projectId}/documents/processing-result/${processingResultId}`
+        `http://localhost:8000/api/projects/${projectId}/documents/latest-analysis`
       );
       
       if (!response.ok) throw new Error('Failed to fetch data');
       
       const result = await response.json();
+      
+      if (!result.has_analysis) {
+        throw new Error('No analysis available');
+      }
+      
+      // New BFA format
       setExtractedData(result.extracted_data || {});
       setConfidenceScores(result.confidence_scores || {});
       setMissingFields(result.missing_fields || []);
@@ -237,40 +244,138 @@ export default function ReviewExtractedData({
         </div>
       )}
 
-      {/* Extracted Data Preview */}
+      {/* BFA Analysis Results */}
       {extractedData && (
-        <div className="bg-dark-800 p-6 rounded-lg">
-          <h3 className="text-lg font-semibold text-white mb-4">Podgląd wyciągniętych danych</h3>
-          
-          <div className="space-y-4">
-            {/* Organization */}
-            {extractedData.organization_name && (
-              <div className="bg-dark-700 p-4 rounded-lg">
-                <h4 className="text-md font-semibold text-primary-500 mb-3">Organizacja</h4>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <span className="text-gray-400">Nazwa:</span>
-                    <span className="text-white ml-2">{extractedData.organization_name}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Branża:</span>
-                    <span className="text-white ml-2">{extractedData.industry}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Wielkość:</span>
-                    <span className="text-white ml-2">{extractedData.company_size}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Lokalizacja:</span>
-                    <span className="text-white ml-2">{extractedData.headquarters_location}</span>
-                  </div>
+        <>
+          {/* Digital Maturity */}
+          {extractedData.digital_maturity && (
+            <div className="bg-dark-800 p-6 rounded-lg">
+              <h3 className="text-lg font-semibold text-white mb-4">Ocena Dojrzałości Cyfrowej</h3>
+              
+              <div className="mb-4">
+                <div className="text-3xl font-bold text-primary-500 mb-2">
+                  {extractedData.digital_maturity.overall_score}/100
                 </div>
+                <p className="text-sm text-gray-400">
+                  {extractedData.digital_maturity.interpretation}
+                </p>
               </div>
-            )}
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {Object.entries(extractedData.digital_maturity).map(([key, value]) => {
+                  if (key === 'overall_score' || key === 'interpretation') return null;
+                  return (
+                    <div key={key} className="bg-dark-700 p-3 rounded-lg">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-gray-300 capitalize">
+                          {key.replace(/_/g, ' ')}
+                        </span>
+                        <span className="text-lg font-bold text-primary-500">
+                          {value}/100
+                        </span>
+                      </div>
+                      <div className="w-full bg-dark-600 rounded-full h-2">
+                        <div
+                          className="bg-primary-500 h-2 rounded-full"
+                          style={{ width: `${value}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
-            {/* More sections can be added here */}
-          </div>
-        </div>
+          {/* TOP Processes */}
+          {extractedData.top_processes && extractedData.top_processes.length > 0 && (
+            <div className="bg-dark-800 p-6 rounded-lg">
+              <h3 className="text-lg font-semibold text-white mb-4">
+                TOP Procesy do Automatyzacji
+              </h3>
+              <p className="text-sm text-gray-400 mb-4">
+                Claude zidentyfikował następujące procesy jako najlepsze kandydaty do automatyzacji:
+              </p>
+              
+              <div className="space-y-2">
+                {extractedData.top_processes.map((process: string, index: number) => (
+                  <div key={index} className="bg-dark-700 p-4 rounded-lg flex items-center space-x-3">
+                    <div className="flex-shrink-0 w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center">
+                      <span className="text-white font-bold">{index + 1}</span>
+                    </div>
+                    <div className="flex-1">
+                      <span className="text-white font-medium">{process}</span>
+                    </div>
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Processes Scoring */}
+          {extractedData.processes_scoring && extractedData.processes_scoring.length > 0 && (
+            <div className="bg-dark-800 p-6 rounded-lg">
+              <h3 className="text-lg font-semibold text-white mb-4">
+                Szczegółowy Scoring Procesów
+              </h3>
+              
+              <div className="space-y-3">
+                {extractedData.processes_scoring.map((proc: any, index: number) => (
+                  <div key={index} className="bg-dark-700 p-4 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <h4 className="text-white font-semibold">{proc.process_name}</h4>
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          proc.tier === 1 ? 'bg-green-500/20 text-green-500' :
+                          proc.tier === 2 ? 'bg-blue-500/20 text-blue-500' :
+                          proc.tier === 3 ? 'bg-yellow-500/20 text-yellow-500' :
+                          'bg-red-500/20 text-red-500'
+                        }`}>
+                          Tier {proc.tier}
+                        </span>
+                      </div>
+                      <div className="text-2xl font-bold text-primary-500">
+                        {proc.score}/100
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-400 mb-2">{proc.rationale}</p>
+                    {proc.time_consumption && (
+                      <div className="text-xs text-gray-500">
+                        Czas: {proc.time_consumption} | Błędy: {proc.error_rate || 'N/A'} | Wolumen: {proc.volume || 'N/A'}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Key Findings */}
+          {extractedData.key_findings && extractedData.key_findings.length > 0 && (
+            <div className="bg-dark-800 p-6 rounded-lg">
+              <h3 className="text-lg font-semibold text-white mb-4">Kluczowe Ustalenia</h3>
+              <ul className="space-y-2">
+                {extractedData.key_findings.map((finding: string, index: number) => (
+                  <li key={index} className="flex items-start text-gray-300">
+                    <CheckCircle className="w-5 h-5 text-primary-500 mr-2 mt-0.5 flex-shrink-0" />
+                    <span>{finding}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Recommendations */}
+          {extractedData.recommendations && (
+            <div className="bg-dark-800 p-6 rounded-lg">
+              <h3 className="text-lg font-semibold text-white mb-4">Rekomendacje</h3>
+              <div className="text-gray-300 whitespace-pre-wrap">
+                {extractedData.recommendations}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Actions */}
