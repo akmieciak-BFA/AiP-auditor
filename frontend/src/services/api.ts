@@ -19,6 +19,18 @@ const api = axios.create({
   },
 });
 
+// Helper function to download file
+const downloadFile = (data: Blob, filename: string) => {
+  const url = window.URL.createObjectURL(data);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+};
+
 // Projects
 export const projectsAPI = {
   getAll: async (): Promise<Project[]> => {
@@ -126,6 +138,27 @@ export const step4API = {
 
   getDownloads: async (projectId: number) => {
     const response = await api.get(`/api/projects/${projectId}/step4/downloads`);
+    return response.data;
+  },
+};
+
+// Downloads
+export const downloadsAPI = {
+  downloadMarkdown: async (projectId: number, projectName: string, clientName: string) => {
+    const response = await api.get(`/api/projects/${projectId}/download/markdown`, {
+      responseType: 'blob',
+    });
+    
+    // Generate filename
+    const safeProjectName = projectName.replace(/\s+/g, '_').replace(/[/\\]/g, '_');
+    const safeClientName = clientName.replace(/\s+/g, '_').replace(/[/\\]/g, '_');
+    const filename = `Audyt_BFA_${safeClientName}_${safeProjectName}.md`;
+    
+    downloadFile(response.data, filename);
+  },
+
+  previewMarkdown: async (projectId: number) => {
+    const response = await api.get(`/api/projects/${projectId}/download/preview`);
     return response.data;
   },
 };

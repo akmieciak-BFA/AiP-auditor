@@ -16,6 +16,7 @@ from .routers import (
 )
 from .routers.drafts import router as drafts_router
 from .routers.documents import router as documents_router
+from .routers.downloads import router as downloads_router
 
 # Configure logging
 logging.basicConfig(
@@ -105,6 +106,7 @@ async def general_exception_handler(request: Request, exc: Exception):
 app.include_router(projects_router)
 app.include_router(drafts_router)
 app.include_router(documents_router)
+app.include_router(downloads_router)
 app.include_router(step1_router)
 app.include_router(step2_router)
 app.include_router(step3_router)
