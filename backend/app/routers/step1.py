@@ -33,6 +33,16 @@ def analyze_step1(
             detail="Project not found"
         )
     
+    # Check if Step1Data already exists from document processing
+    step1_data = db.query(Step1Data).filter(
+        Step1Data.project_id == project_id
+    ).first()
+    
+    if step1_data and step1_data.analysis_results:
+        # Already analyzed from documents - return existing results
+        logger.info(f"Using existing Step1Data from document analysis for project {project_id}")
+        return Step1AnalysisResult(**step1_data.analysis_results)
+    
     # Sanitize data
     clean_data = sanitize_dict(data.dict())
     

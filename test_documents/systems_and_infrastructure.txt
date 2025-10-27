@@ -1,0 +1,224 @@
+ACME MANUFACTURING - INFRASTRUKTURA IT I SYSTEMY
+
+=== OBECNE SYSTEMY ===
+
+1. SAP Business One (ERP)
+   - Wersja: 10.0
+   - Moduły: FI (Finanse), MM (Zakupy), SD (Sprzedaż), PP (Produkcja - częściowo)
+   - Użytkownicy: 45 licencji
+   - Integracja: 70% procesów
+   - Hosting: On-premise (server w Katowicach)
+   - Baza danych: MS SQL Server 2019
+
+2. Salesforce CRM
+   - Edycja: Professional
+   - Użytkownicy: 35 licencji
+   - Customization: średnia (custom objects, workflows)
+   - Integracja z SAP: Brak (ręczne przepisywanie zamówień)
+   - API: Dostępne (REST/SOAP)
+
+3. System produkcyjny (Legacy)
+   - Technologia: MS Access + Excel VBA
+   - Funkcje: Planowanie produkcji, tracking zleceń, raporty
+   - Użytkownicy: 12 osób (produkcja + planowanie)
+   - Stan: Przestarzały, wymaga wymiany
+   - Dane: Częściowo synchronizowane z SAP (ręcznie)
+
+4. WMS QuickStock (Magazyn)
+   - Wersja: 3.2
+   - Funkcje: Przyjęcia, wydania, inwentaryzacje, lokalizacje
+   - Użytkownicy: 15 osób
+   - Integracja: BRAK z innymi systemami
+   - Export: CSV (ręczne importy do SAP)
+
+5. Symfonia Finanse
+   - Moduł: FK (Księga główna), KH (Księga handlowa)
+   - Użytkownicy: 8 osób
+   - Rola: Backup dla SAP FI (wymóg lokalnej księgowości)
+   - Integracja: Brak (ręczna synchronizacja)
+
+6. E-mail & Komunikacja
+   - Microsoft 365 Business Standard
+   - Exchange Online
+   - Teams (używane sporadycznie)
+   - SharePoint (używany jako folder sieciowy)
+
+7. Inne aplikacje
+   - Power BI Desktop (3 licencje, używane przez controlling)
+   - Crystal Reports (raporty SAP)
+   - Adobe Reader (obieg faktur PDF)
+
+=== INFRASTRUKTURA ===
+
+Network:
+- LAN: Gigabit ethernet w lokalizacji głównej
+- WAN: VPN między lokalizacjami (50 Mbps)
+- Internet: 300/100 Mbps fiber (Katowice)
+- WiFi: Pokrycie 60% powierzchni zakładu
+
+Servery (On-premise):
+- SAP server: Dell PowerEdge R740, 128GB RAM, RAID10
+- SQL Server: Dell PowerEdge R640, 64GB RAM
+- File server: Synology NAS, 12TB
+- Domain controller: Windows Server 2019
+
+Backup:
+- Veeam Backup (lokalne kopie)
+- Częstotliwość: Dziennie (incremental), tygodniowo (full)
+- Retention: 30 dni
+- Offsite backup: NIE (ryzyko!)
+
+Cloud services:
+- Microsoft 365 (email, Office)
+- Salesforce (SaaS)
+- Niewykorzystywane: Azure, AWS (poza small tests)
+
+=== PROBLEMY TECHNICZNE ===
+
+1. Brak integracji między systemami
+   - SAP <-> Salesforce: BRAK (ręczne przepisywanie 450 zamówień/miesiąc)
+   - SAP <-> WMS: BRAK (CSV import/export 2x dziennie)
+   - System produkcyjny <-> SAP: Częściowa (ręczna synchronizacja)
+   - Symfonia <-> SAP: BRAK (double entry, ryzyko błędów)
+
+2. Legacy system produkcyjny
+   - Oparte na MS Access (niestabilne, często crashes)
+   - Excel VBA (trudne w maintenance)
+   - Brak wersjonowania, brak dokumentacji
+   - Single point of failure (jedna osoba zna cały kod)
+
+3. Ręczne procesy
+   - Email workflows (zatwierdzenia, obieg dokumentów)
+   - Excel jako "system" (pulpity, raporty, planowanie)
+   - Papierowe formularze (QC, produkcja)
+   - Ręczne data entry (faktury, zamówienia)
+
+4. Brak automatyzacji
+   - Zero RPA
+   - Brak workflow engine (BPM)
+   - Brak document management system
+   - Brak OCR dla faktur
+
+5. Bezpieczeństwo
+   - Brak MFA w większości systemów
+   - Słabe polityki haseł
+   - Brak offsite backup
+   - Brak disaster recovery plan
+
+6. Widoczność i raportowanie
+   - Brak centralnego dashboardu
+   - Raporty generowane ręcznie (Excel consolidation)
+   - Dane rozproszone w różnych systemach
+   - Brak real-time metrics
+
+=== POTENCJAŁ AUTOMATYZACJI ===
+
+Quick wins (3-6 miesięcy):
+1. RPA dla fakturowania (invoice processing)
+   - OCR + auto data entry do SAP
+   - Estimated savings: 25h/tydzień = 100 000 PLN/rok
+
+2. Integracja SAP <-> Salesforce
+   - API integration dla zamówień
+   - Eliminacja ręcznego przepisywania
+   - Estimated savings: 15h/tydzień = 60 000 PLN/rok
+
+3. Email workflow automation (zatwierdzenia)
+   - Power Automate / nintex
+   - Estimated savings: 10h/tydzień = 40 000 PLN/rok
+
+4. Customer inquiry automation (chatbot/FAQ)
+   - Reduce 30% inquiries (repetitive questions)
+   - Estimated savings: 15h/tydzień = 60 000 PLN/rok
+
+Strategic (6-18 miesięcy):
+1. Wymiana legacy systemu produkcyjnego
+   - SAP PP lub dedykowane MES
+   - Integration with IoT sensors
+
+2. Warehouse Management System upgrade
+   - Integracja z SAP MM
+   - Mobile devices (RF scanners)
+   - Real-time inventory
+
+3. BPM platform (Camunda / Nintex)
+   - Orchestration procesów
+   - End-to-end visibility
+
+4. Document Management System
+   - SharePoint upgrade / Laserfiche
+   - Automatyczny obieg dokumentów
+
+=== ZASOBY IT ===
+
+Zespół IT:
+- IT Manager: 1 osoba
+- System Administrator: 2 osoby (SAP, network, servery)
+- Helpdesk: 2 osoby
+- Razem: 5 osób
+
+Skills:
+- SAP: średni poziom (customization, ABAP basic)
+- RPA: BRAK doświadczenia
+- API integration: BRAK doświadczenia
+- Cloud: basic (Microsoft 365)
+
+Ograniczenia:
+- Brak dedykowanego BPM department
+- Brak automation specialist
+- Brak project managera dla transformacji cyfrowej
+- Limited budget na szkolenia
+
+Doświadczenie z automatyzacją:
+- Wdrożenie SAP (2019) - sukces częściowy
+- Wdrożenie Salesforce (2021) - sukces
+- Próba RPA (2022) - abandoned (brak kompetencji)
+
+Gotowość organizacyjna:
+- Zarząd: Mocne wsparcie dla automatyzacji
+- Middle management: Ostrożni, obawy o miejsca pracy
+- Pracownicy operacyjni: Mieszane (część entuzjastyczna, część sceptyczna)
+- Change management readiness: Średnia (potrzebne szkolenia, komunikacja)
+
+=== REGULACJE PRAWNE ===
+
+Compliance wymagania:
+- RODO (GDPR) - przetwarzanie danych osobowych
+- Ustawa o rachunkowości - wymogi bookkeeping
+- ISO 9001:2015 - zarządzanie jakością (certyfikat)
+- Przepisy BHP w produkcji
+
+Wpływ na automatyzację:
+- RODO: Potrzeba audytu data flows w zautomatyzowanych procesach
+- Accounting: Wymóg zachowania audit trail
+- ISO 9001: Dokumentacja procesów (może pomóc w automatyzacji)
+
+Ryzyka prawne:
+- Automatyzacja decyzji finansowych (wymaga human oversight)
+- Retention policy dla dokumentów (archiwizacja)
+- Data sovereignty (hosting w Polsce/EU)
+
+=== BUDŻET I FINANSOWANIE ===
+
+Budżet IT roczny: 850 000 PLN
+- Licencje: 320 000 PLN
+- Maintenance: 180 000 PLN
+- Hardware: 150 000 PLN
+- Personel IT: 200 000 PLN (5 osób)
+
+Budżet na automatyzację (12 miesięcy): 250 000 - 500 000 PLN
+Możliwe źródła:
+- Budżet operacyjny: 250 000 PLN
+- Dotacje UE: Do 150 000 PLN (Program Operacyjny Polska Cyfrowa)
+- Oszczędności z redukcji kosztów: 100 000 PLN (reinwestycja)
+
+ROI expectations:
+- Minimum 150% w 24 miesiące
+- Break-even: 12-18 miesięcy
+- Oszczędności rocznie: minimum 300 000 PLN
+
+Preferred approach:
+- Phased implementation (3-4 fazy)
+- Start z quick wins (RPA)
+- Proof of concept przed full deployment
+- Mix cloud + on-premise (hybrid)
