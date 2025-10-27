@@ -1,0 +1,159 @@
+/* Advanced Animations for Premium UX */
+
+/* Fade & Scale */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Slide Up with Fade */
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Bounce In */
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Float */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Shimmer for skeleton loaders */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+/* Gradient animation */
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Pulse glow */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(43, 122, 120, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 20px 10px rgba(43, 122, 120, 0);
+  }
+}
+
+/* Rotate subtle */
+@keyframes rotateSubtle {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Card hover lift */
+@keyframes cardLift {
+  from {
+    transform: translateY(0) scale(1);
+  }
+  to {
+    transform: translateY(-8px) scale(1.02);
+  }
+}
+
+/* Utility classes */
+.animate-fade-in-scale {
+  animation: fadeInScale 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-slide-up {
+  animation: slideUpFade 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-bounce-in {
+  animation: bounceIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Stagger animations */
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+.stagger-4 { animation-delay: 0.4s; }
+.stagger-5 { animation-delay: 0.5s; }
+
+/* Performance optimization */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+/* GPU acceleration helpers */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Smooth transitions */
+.smooth-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.smooth-transition-fast {
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.smooth-transition-slow {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
