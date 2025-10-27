@@ -88,7 +88,7 @@ def generate_presentation(
         project_id=project_id,
         output_type="presentation",
         gamma_url=gamma_url,
-        settings=request_data.dict()
+        settings=request_data.model_dump()
     )
     
     db.add(output)

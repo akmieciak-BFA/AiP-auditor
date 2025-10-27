@@ -1,5 +1,5 @@
 from fastapi import Request, HTTPException, status
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 import threading
 
@@ -11,7 +11,7 @@ class RateLimiter:
     
     def is_allowed(self, key: str, max_requests: int, window_seconds: int) -> bool:
         """Check if request is allowed based on rate limit."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         cutoff = now - timedelta(seconds=window_seconds)
         
         with self.lock:
@@ -36,7 +36,7 @@ class RateLimiter:
         
         oldest = min(self.requests[key])
         reset_time = oldest + timedelta(seconds=window_seconds)
-        retry_after = (reset_time - datetime.utcnow()).total_seconds()
+        retry_after = (reset_time - datetime.now(timezone.utc)).total_seconds()
         return max(0, int(retry_after))
 
 # Global rate limiter instance

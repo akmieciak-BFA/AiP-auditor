@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from contextlib import asynccontextmanager
 import logging
 import time
 from .config import get_settings
@@ -27,13 +28,33 @@ logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan handler (replaces deprecated @app.on_event)"""
+    # Startup
+    logger.info("Starting BFA Audit App...")
+    try:
+        init_db()
+        logger.info("Database initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize database: {e}")
+        raise
+    
+    yield
+    
+    # Shutdown
+    logger.info("Shutting down BFA Audit App...")
+
+
 app = FastAPI(
     title="BFA Audit App",
     description="Comprehensive BFA automation audit application with AI-powered analysis",
     version="1.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
-    openapi_url="/openapi.json"
+    openapi_url="/openapi.json",
+    lifespan=lifespan
 )
 
 # Configure CORS
@@ -111,24 +132,6 @@ app.include_router(step1_router)
 app.include_router(step2_router)
 app.include_router(step3_router)
 app.include_router(step4_router)
-
-
-@app.on_event("startup")
-async def on_startup():
-    """Initialize application on startup."""
-    logger.info("Starting BFA Audit App...")
-    try:
-        init_db()
-        logger.info("Database initialized successfully")
-    except Exception as e:
-        logger.error(f"Failed to initialize database: {e}")
-        raise
-
-
-@app.on_event("shutdown")
-async def on_shutdown():
-    """Cleanup on application shutdown."""
-    logger.info("Shutting down BFA Audit App...")
 
 
 @app.get("/", tags=["General"])

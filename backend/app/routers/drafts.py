@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from ..database import get_db
 # User import removed (no auth)
 from ..models.project import Project
@@ -36,7 +36,7 @@ def save_draft(
     if draft:
         # Update existing draft
         draft.draft_data = draft_data
-        draft.updated_at = datetime.utcnow()
+        draft.updated_at = datetime.now(timezone.utc)
     else:
         # Create new draft
         draft = ProjectDraft(
