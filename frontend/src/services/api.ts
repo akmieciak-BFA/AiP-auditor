@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import type {
   Project,
   ProjectCreate,
@@ -12,12 +12,53 @@ import type {
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-const api = axios.create({
+// Create axios instance with optimized configuration
+const api: AxiosInstance = axios.create({
   baseURL: API_URL,
+  timeout: 30000, // 30 seconds timeout
   headers: {
     'Content-Type': 'application/json',
   },
+  // Enable request/response compression
+  decompress: true,
 });
+
+// Request interceptor for logging and error handling
+api.interceptors.request.use(
+  (config) => {
+    // Add timestamp to prevent caching issues
+    if (config.method === 'get') {
+      config.params = {
+        ...config.params,
+        _t: Date.now(),
+      };
+    }
+    return config;
+  },
+  (error) => {
+    console.error('Request error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor for error handling
+api.interceptors.response.use(
+  (response: AxiosResponse) => {
+    return response;
+  },
+  (error: AxiosError) => {
+    if (error.response?.status === 429) {
+      // Rate limit exceeded
+      const retryAfter = error.response.headers['retry-after'];
+      console.warn(`Rate limit exceeded. Retry after ${retryAfter} seconds`);
+    } else if (error.code === 'ECONNABORTED') {
+      console.error('Request timeout');
+    } else if (!error.response) {
+      console.error('Network error - please check your connection');
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Helper function to download file
 const downloadFile = (data: Blob, filename: string) => {

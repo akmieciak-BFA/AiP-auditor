@@ -1,13 +1,16 @@
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from contextlib import asynccontextmanager
 import logging
 import time
+import uvicorn
 from .config import get_settings
-from .database import init_db
+from .database import init_db, check_db_connection
 from .routers import (
     projects_router,
     step1_router,
@@ -19,24 +22,27 @@ from .routers.drafts import router as drafts_router
 from .routers.documents import router as documents_router
 from .routers.downloads import router as downloads_router
 
+settings = get_settings()
+
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=getattr(logging, settings.log_level.upper()),
+    format=settings.log_format
 )
 logger = logging.getLogger(__name__)
-
-settings = get_settings()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler (replaces deprecated @app.on_event)"""
     # Startup
-    logger.info("Starting BFA Audit App...")
+    logger.info(f"Starting {settings.app_name} v{settings.version}...")
     try:
         init_db()
-        logger.info("Database initialized successfully")
+        if check_db_connection():
+            logger.info("Database connection verified successfully")
+        else:
+            logger.warning("Database connection check failed")
     except Exception as e:
         logger.error(f"Failed to initialize database: {e}")
         raise
@@ -44,25 +50,35 @@ async def lifespan(app: FastAPI):
     yield
     
     # Shutdown
-    logger.info("Shutting down BFA Audit App...")
+    logger.info(f"Shutting down {settings.app_name}...")
 
 
 app = FastAPI(
-    title="BFA Audit App",
+    title=settings.app_name,
     description="Comprehensive BFA automation audit application with AI-powered analysis",
-    version="1.1.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json",
+    version=settings.version,
+    docs_url="/docs" if settings.debug else None,
+    redoc_url="/redoc" if settings.debug else None,
+    openapi_url="/openapi.json" if settings.debug else None,
     lifespan=lifespan
 )
+
+# Add security middleware
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=["localhost", "127.0.0.1", "*.localhost"]
+)
+
+# Add compression middleware
+if settings.enable_compression:
+    app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -156,21 +172,23 @@ def root():
 def health_check():
     """Health check endpoint with system status."""
     try:
-        # Test database connection
-        from .database import SessionLocal
-        db = SessionLocal()
-        db.execute("SELECT 1")
-        db.close()
-        db_status = "healthy"
+        db_healthy = check_db_connection()
+        db_status = "healthy" if db_healthy else "unhealthy"
     except Exception as e:
         logger.error(f"Database health check failed: {e}")
         db_status = "unhealthy"
     
     return {
         "status": "healthy" if db_status == "healthy" else "degraded",
-        "version": "1.1.0",
+        "version": settings.version,
         "database": db_status,
-        "timestamp": time.time()
+        "timestamp": time.time(),
+        "features": {
+            "claude_configured": bool(settings.claude_api_key),
+            "gamma_configured": bool(settings.gamma_api_key),
+            "compression": settings.enable_compression,
+            "caching": settings.enable_caching
+        }
     }
 
 

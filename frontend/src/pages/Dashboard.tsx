@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, FolderOpen, Trash2, Clock } from 'lucide-react';
+import { Plus, FolderOpen, Trash2, Clock, Search, Filter } from 'lucide-react';
 import { projectsAPI } from '../services/api';
 import { useToastStore } from '../store/toastStore';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -15,6 +15,10 @@ export default function Dashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newClientName, setNewClientName] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'name' | 'client_name' | 'updated_at'>('updated_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; projectId: number | null }>({
     show: false,
     projectId: null,
@@ -24,8 +28,9 @@ export default function Dashboard() {
     loadProjects();
   }, []);
 
-  const loadProjects = async () => {
+  const loadProjects = useCallback(async () => {
     try {
+      setIsLoading(true);
       const data = await projectsAPI.getAll();
       setProjects(data);
     } catch (error) {
@@ -34,7 +39,7 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,6 +100,48 @@ export default function Dashboard() {
     return colors[status] || 'bg-gray-500';
   };
 
+  // Filtered and sorted projects
+  const filteredProjects = useMemo(() => {
+    let filtered = projects;
+
+    // Apply search filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (project) =>
+          project.name.toLowerCase().includes(term) ||
+          project.client_name.toLowerCase().includes(term)
+      );
+    }
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((project) => project.status === statusFilter);
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let aValue: string | number;
+      let bValue: string | number;
+
+      if (sortBy === 'updated_at') {
+        aValue = new Date(a.updated_at).getTime();
+        bValue = new Date(b.updated_at).getTime();
+      } else {
+        aValue = a[sortBy].toLowerCase();
+        bValue = b[sortBy].toLowerCase();
+      }
+
+      if (sortOrder === 'asc') {
+        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+      } else {
+        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+      }
+    });
+
+    return filtered;
+  }, [projects, searchTerm, statusFilter, sortBy, sortOrder]);
+
   if (isLoading) {
     return <LoadingSpinner message="Ładowanie projektów..." />;
   }
@@ -115,6 +162,66 @@ export default function Dashboard() {
         </button>
       </div>
 
+      {/* Search and Filter Controls */}
+      <div className="card mb-6 p-4">
+        <div className="flex flex-col md:flex-row gap-4">
+          {/* Search */}
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Szukaj projektów..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="input pl-10 w-full"
+              />
+            </div>
+          </div>
+
+          {/* Status Filter */}
+          <div className="flex gap-2">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="input"
+            >
+              <option value="all">Wszystkie statusy</option>
+              <option value="step1">Krok 1</option>
+              <option value="step2">Krok 2</option>
+              <option value="step3">Krok 3</option>
+              <option value="step4">Krok 4</option>
+              <option value="completed">Zakończone</option>
+            </select>
+
+            {/* Sort Controls */}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as 'name' | 'client_name' | 'updated_at')}
+              className="input"
+            >
+              <option value="updated_at">Data aktualizacji</option>
+              <option value="name">Nazwa projektu</option>
+              <option value="client_name">Nazwa klienta</option>
+            </select>
+
+            <button
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              className="btn btn-secondary flex items-center space-x-1"
+              title={`Sortuj ${sortOrder === 'asc' ? 'malejąco' : 'rosnąco'}`}
+            >
+              <Filter className="w-4 h-4" />
+              <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>
+            </button>
+          </div>
+        </div>
+        
+        {/* Project Count */}
+        <div className="text-sm text-gray-400 mt-2">
+          {filteredProjects.length} z {projects.length} projektów
+        </div>
+      </div>
+
       {projects.length === 0 ? (
         <div className="card text-center py-12">
           <FolderOpen className="w-16 h-16 text-gray-500 mx-auto mb-4" />
@@ -131,9 +238,28 @@ export default function Dashboard() {
             Utwórz Projekt
           </button>
         </div>
+      ) : filteredProjects.length === 0 ? (
+        <div className="card text-center py-12">
+          <Search className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-300 mb-2">
+            Nie znaleziono projektów
+          </h3>
+          <p className="text-gray-500 mb-4">
+            Spróbuj zmienić kryteria wyszukiwania lub filtrowania
+          </p>
+          <button
+            onClick={() => {
+              setSearchTerm('');
+              setStatusFilter('all');
+            }}
+            className="btn btn-secondary"
+          >
+            Wyczyść filtry
+          </button>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((project) => (
+          {filteredProjects.map((project) => (
             <div key={project.id} className="card hover:border-primary-500 transition-colors cursor-pointer group">
               <div onClick={() => navigate(`/project/${project.id}`)}>
                 <div className="flex items-start justify-between mb-4">

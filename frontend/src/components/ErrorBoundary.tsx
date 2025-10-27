@@ -1,8 +1,9 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 
 interface Props {
   children: ReactNode;
+  fallback?: ReactNode;
 }
 
 interface State {
@@ -51,8 +52,12 @@ class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      if (this.props.fallback) {
+        return this.props.fallback;
+      }
+
       return (
-        <div className="min-h-screen flex items-center justify-center bg-dark-800 px-4">
+        <div className="min-h-screen flex items-center justify-center bg-gray-900 px-4">
           <div className="max-w-md w-full">
             <div className="card text-center">
               <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
@@ -62,45 +67,36 @@ class ErrorBoundary extends Component<Props, State> {
               </h1>
               
               <p className="text-gray-400 mb-6">
-                Aplikacja napotkała nieoczekiwany błąd. Przepraszamy za niedogodności.
+                Aplikacja napotkała nieoczekiwany błąd. Spróbuj odświeżyć stronę lub wróć do strony głównej.
               </p>
 
-              {this.state.error && (
-                <div className="bg-dark-700 p-4 rounded-lg mb-6 text-left">
-                  <p className="text-sm text-red-400 font-mono break-all">
+              {process.env.NODE_ENV === 'development' && this.state.error && (
+                <div className="mb-6 p-4 bg-red-900/20 border border-red-500/20 rounded-lg text-left">
+                  <h3 className="text-sm font-semibold text-red-400 mb-2">Szczegóły błędu:</h3>
+                  <pre className="text-xs text-red-300 whitespace-pre-wrap overflow-auto max-h-32">
                     {this.state.error.toString()}
-                  </p>
+                    {this.state.errorInfo?.componentStack}
+                  </pre>
                 </div>
               )}
 
-              <div className="flex space-x-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={this.handleReset}
-                  className="btn btn-secondary flex-1 flex items-center justify-center space-x-2"
+                  className="btn btn-primary flex items-center justify-center space-x-2 flex-1"
                 >
-                  <RefreshCw className="w-5 h-5" />
+                  <RefreshCw className="w-4 h-4" />
                   <span>Spróbuj ponownie</span>
                 </button>
                 
                 <button
-                  onClick={this.handleReload}
-                  className="btn btn-primary flex-1 flex items-center justify-center space-x-2"
+                  onClick={() => window.location.href = '/'}
+                  className="btn btn-secondary flex items-center justify-center space-x-2 flex-1"
                 >
-                  <RefreshCw className="w-5 h-5" />
-                  <span>Przeładuj</span>
+                  <Home className="w-4 h-4" />
+                  <span>Strona główna</span>
                 </button>
               </div>
-
-              {process.env.NODE_ENV === 'development' && this.state.errorInfo && (
-                <details className="mt-6 text-left">
-                  <summary className="text-sm text-gray-400 cursor-pointer hover:text-gray-300">
-                    Szczegóły techniczne (dev)
-                  </summary>
-                  <pre className="mt-2 text-xs text-gray-500 bg-dark-700 p-3 rounded overflow-auto max-h-40">
-                    {this.state.errorInfo.componentStack}
-                  </pre>
-                </details>
-              )}
             </div>
           </div>
         </div>
