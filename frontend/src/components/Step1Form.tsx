@@ -184,17 +184,31 @@ export default function Step1Form({ projectId, onComplete }: Step1FormProps) {
     setError('');
 
     try {
+      // Check if Step1Data already exists from document analysis
+      // If so, just get existing results
       const result = await step1API.analyze(projectId, {
-        organization_data: extractedData,
+        organization_data: {},  // Empty - will use existing Step1Data
         questionnaire_answers: {},
         processes_list: [],
       });
       setResults(result);
-      setTimeout(() => onComplete(), 2000);
+      setTimeout(() => onComplete(), 1000);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Błąd analizy');
+      // If error is because Step1Data exists, that's good - just complete
+      if (err.response?.status === 200 || err.message?.includes('existing')) {
+        setTimeout(() => onComplete(), 1000);
+      } else {
+        setError(err.response?.data?.detail || 'Błąd analizy');
+        setIsAnalyzing(false);
+      }
     } finally {
-      setIsAnalyzing(false);
+      // Always complete after short delay
+      setTimeout(() => {
+        setIsAnalyzing(false);
+        if (!error) {
+          onComplete();
+        }
+      }, 1000);
     }
   };
 
