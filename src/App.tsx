@@ -2,10 +2,11 @@ import { lazy, Suspense } from 'react';
 import styled from 'styled-components';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import './styles/global.css';
+import './styles/animations.css';
 
 // Lazy load components for better performance
-const Header = lazy(() => import('./components/Header').then(module => ({ default: module.Header })));
-const Dashboard = lazy(() => import('./components/Dashboard').then(module => ({ default: module.Dashboard })));
+const Header = lazy(() => import('./components/Header.premium').then(module => ({ default: module.HeaderPremium })));
+const Dashboard = lazy(() => import('./components/Dashboard.premium').then(module => ({ default: module.DashboardPremium })));
 const Footer = lazy(() => import('./components/Footer').then(module => ({ default: module.Footer })));
 
 const AppContainer = styled.div`
