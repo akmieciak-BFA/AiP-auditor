@@ -1,8 +1,13 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 import enum
 from ..database import Base
+
+
+def get_utc_now():
+    """Get current UTC time for database defaults."""
+    return datetime.now(timezone.utc)
 
 
 class ProjectStatus(str, enum.Enum):
@@ -20,8 +25,8 @@ class Project(Base):
     name = Column(String, nullable=False)
     client_name = Column(String, nullable=False)
     status = Column(Enum(ProjectStatus), default=ProjectStatus.step1)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=get_utc_now)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
     
     # Relationships (removed user relationship - internal app without authentication)
     step1_data = relationship("Step1Data", back_populates="project", uselist=False, cascade="all, delete-orphan")

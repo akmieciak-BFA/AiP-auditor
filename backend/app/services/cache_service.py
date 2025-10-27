@@ -1,5 +1,5 @@
 from typing import Any, Optional, Dict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 import threading
@@ -22,7 +22,7 @@ class CacheService:
         with self.lock:
             if key in self.cache:
                 entry = self.cache[key]
-                if entry['expires_at'] > datetime.utcnow():
+                if entry['expires_at'] > datetime.now(timezone.utc):
                     return entry['value']
                 else:
                     # Remove expired entry
@@ -34,7 +34,7 @@ class CacheService:
         with self.lock:
             self.cache[key] = {
                 'value': value,
-                'expires_at': datetime.utcnow() + timedelta(seconds=ttl_seconds)
+                'expires_at': datetime.now(timezone.utc) + timedelta(seconds=ttl_seconds)
             }
     
     def delete(self, key: str):
@@ -51,7 +51,7 @@ class CacheService:
     def clean_expired(self):
         """Remove expired entries."""
         with self.lock:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             expired_keys = [
                 key for key, entry in self.cache.items()
                 if entry['expires_at'] <= now

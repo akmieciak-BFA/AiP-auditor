@@ -1,7 +1,12 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from ..database import Base
+
+
+def get_utc_now():
+    """Get current UTC time for database defaults."""
+    return datetime.now(timezone.utc)
 
 
 class ProjectDraft(Base):
@@ -12,8 +17,8 @@ class ProjectDraft(Base):
     project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
     step = Column(String, nullable=False, index=True)  # step1, step2, step3, step4
     draft_data = Column(JSON, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=get_utc_now, index=True)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
     
     # Relationships
     project = relationship("Project", back_populates="drafts")

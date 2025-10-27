@@ -1,7 +1,12 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON, BigInteger
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from ..database import Base
+
+
+def get_utc_now():
+    """Get current UTC time for database defaults."""
+    return datetime.now(timezone.utc)
 
 
 class UploadedDocument(Base):
@@ -13,7 +18,7 @@ class UploadedDocument(Base):
     file_path = Column(String, nullable=False)
     file_type = Column(String, nullable=False)  # excel, pdf, txt, md, csv
     file_size = Column(BigInteger, nullable=False)
-    uploaded_at = Column(DateTime, default=datetime.utcnow)
+    uploaded_at = Column(DateTime, default=get_utc_now)
     
     # Relationships
     project = relationship("Project", back_populates="uploaded_documents")
@@ -30,7 +35,7 @@ class DocumentProcessingResult(Base):
     processing_summary = Column(JSON, nullable=True)
     tokens_used = Column(Integer, nullable=True)
     processing_time_seconds = Column(Integer, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=get_utc_now)
     
     # Relationships
     project = relationship("Project", back_populates="document_processing_results")
